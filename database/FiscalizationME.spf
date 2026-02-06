@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ContentFilters</key>
+	<dict/>
+	<key>auto_connect</key>
+	<true/>
+	<key>data</key>
+	<dict>
+		<key>connection</key>
+		<dict>
+			<key>allowDataLocalInfile</key>
+			<integer>0</integer>
+			<key>database</key>
+			<string>FiscalizationME</string>
+			<key>enableClearTextPlugin</key>
+			<integer>0</integer>
+			<key>host</key>
+			<string>127.0.0.1</string>
+			<key>name</key>
+			<string>root@127.0.0.1</string>
+			<key>rdbms_type</key>
+			<string>mysql</string>
+			<key>sslCACertFileLocation</key>
+			<string></string>
+			<key>sslCACertFileLocationEnabled</key>
+			<integer>0</integer>
+			<key>sslCertificateFileLocation</key>
+			<string></string>
+			<key>sslCertificateFileLocationEnabled</key>
+			<integer>0</integer>
+			<key>sslKeyFileLocation</key>
+			<string></string>
+			<key>sslKeyFileLocationEnabled</key>
+			<integer>0</integer>
+			<key>type</key>
+			<string>SPTCPIPConnection</string>
+			<key>useSSL</key>
+			<integer>0</integer>
+			<key>user</key>
+			<string>root</string>
+		</dict>
+		<key>session</key>
+		<dict>
+			<key>connectionEncoding</key>
+			<string>utf8mb4</string>
+			<key>contentFilterV2</key>
+			<dict>
+				<key>children</key>
+				<array/>
+				<key>filterClass</key>
+				<string>groupNode</string>
+				<key>isConjunction</key>
+				<true/>
+			</dict>
+			<key>contentPageNumber</key>
+			<integer>1</integer>
+			<key>contentSelection</key>
+			<data>
+			YnBsaXN0MDDUAQIDBAUGBwpYJHZlcnNpb25ZJGFyY2hpdmVyVCR0
+			b3BYJG9iamVjdHMSAAGGoF8QD05TS2V5ZWRBcmNoaXZlctEICVRk
+			YXRhgAGoCwwXGBkaHiVVJG51bGzTDQ4PEBMWV05TLmtleXNaTlMu
+			b2JqZWN0c1YkY2xhc3OiERKAAoADohQVgASABYAHVHR5cGVUcm93
+			c18QHVNlbGVjdGlvbkRldGFpbFR5cGVOU0luZGV4U2V00hsPHB1c
+			TlNSYW5nZUNvdW50EACABtIfICEiWiRjbGFzc25hbWVYJGNsYXNz
+			ZXNaTlNJbmRleFNldKIjJFpOU0luZGV4U2V0WE5TT2JqZWN00h8g
+			JidcTlNEaWN0aW9uYXJ5oiYkAAgAEQAaACQAKQAyADcASQBMAFEA
+			UwBcAGIAaQBxAHwAgwCGAIgAigCNAI8AkQCTAJgAnQC9AMIAzwDR
+			ANMA2ADjAOwA9wD6AQUBDgETASAAAAAAAAACAQAAAAAAAAAoAAAA
+			AAAAAAAAAAAAAAABIw==
+			</data>
+			<key>contentSortColIsAsc</key>
+			<true/>
+			<key>contentViewport</key>
+			<string>{{0, -28}, {693, 501}}</string>
+			<key>isToolbarVisible</key>
+			<true/>
+			<key>queries</key>
+			<string>
+Use FiscalizationME;
+
+CREATE TABLE Company (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tax_id_type VARCHAR(50),
+  tax_id_number VARCHAR(100),
+  name VARCHAR(255),
+  country VARCHAR(100),
+  city VARCHAR(100),
+  address VARCHAR(255),
+  enu_code VARCHAR(50),
+  business_unit_code VARCHAR(50),
+  software_code VARCHAR(50),
+  bank_account_number VARCHAR(50),
+  is_issuer_in_vat BOOLEAN
+) ENGINE=InnoDB;
+
+
+CREATE TABLE Buyer (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tax_id_type VARCHAR(50),
+  tax_id_number VARCHAR(100),
+  name VARCHAR(255),
+  country VARCHAR(100),
+  city VARCHAR(100),
+  address VARCHAR(255)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE VatRate (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100),
+  percentage DECIMAL(5,2),
+  vat_exemption_reason TEXT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE Product (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(100),
+  name VARCHAR(255),
+  unit VARCHAR(50),
+  vat_rate_id INT,
+  CONSTRAINT fk_product_vat_rate
+    FOREIGN KEY (vat_rate_id)
+    REFERENCES VatRate(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE User (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  company_id INT,
+  name VARCHAR(255),
+  email VARCHAR(255),
+  operator_code VARCHAR(50),
+  role VARCHAR(50),
+  is_active BOOLEAN,
+  CONSTRAINT fk_user_company
+    FOREIGN KEY (company_id)
+    REFERENCES Company(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE Invoice (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_number VARCHAR(100),
+  order_number INT,
+  invoice_type VARCHAR(50),
+  type_of_invoice VARCHAR(50),
+  issued_at DATETIME,
+  tax_period VARCHAR(50),
+  total_price_without_vat DECIMAL(15,2),
+  payment_method_type VARCHAR(50),
+  total_vat_amount DECIMAL(15,2),
+  total_price_to_pay DECIMAL(15,2),
+  note TEXT,
+  payment_deadline VARCHAR(50),
+  iic VARCHAR(255),
+  iic_signature TEXT,
+  company_id INT,
+  buyer_id INT NULL,
+  user_id INT,
+  created_at DATETIME,
+  CONSTRAINT fk_invoice_company
+    FOREIGN KEY (company_id)
+    REFERENCES Company(id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_invoice_buyer
+    FOREIGN KEY (buyer_id)
+    REFERENCES Buyer(id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_invoice_user
+    FOREIGN KEY (user_id)
+    REFERENCES User(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE InvoiceItem (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id INT,
+  product_id INT,
+  quantity DECIMAL(15,4),
+  unit_price DECIMAL(15,4),
+  vat_rate_id INT,
+  CONSTRAINT fk_invoice_item_invoice
+    FOREIGN KEY (invoice_id)
+    REFERENCES Invoice(id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_invoice_item_product
+    FOREIGN KEY (product_id)
+    REFERENCES Product(id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_invoice_item_vat_rate
+    FOREIGN KEY (vat_rate_id)
+    REFERENCES VatRate(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE CorrectiveInvoice (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id INT,
+  type VARCHAR(50),
+  reference_iic VARCHAR(255),
+  original_issue_datetime DATETIME,
+  CONSTRAINT fk_corrective_invoice_invoice
+    FOREIGN KEY (invoice_id)
+    REFERENCES Invoice(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+</string>
+			<key>view</key>
+			<string>SP_VIEW_CUSTOMQUERY</string>
+			<key>windowVerticalDividerPosition</key>
+			<real>214</real>
+		</dict>
+	</dict>
+	<key>encrypted</key>
+	<false/>
+	<key>format</key>
+	<string>connection</string>
+	<key>queryFavorites</key>
+	<array/>
+	<key>rdbms_type</key>
+	<string>mysql</string>
+	<key>rdbms_version</key>
+	<string>9.6.0</string>
+	<key>version</key>
+	<integer>1</integer>
+</dict>
+</plist>
