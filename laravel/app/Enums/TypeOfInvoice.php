@@ -2,10 +2,9 @@
 
 namespace App\Enums;
 
-enum InvoiceType: string
+enum TypeOfInvoice: string
 {
-    case INVOICE = 'INVOICE';
-    case CORRECTIVE = 'CORRECTIVE';
+    case NONCASH = 'NONCASH';
 }
 
 ?>
