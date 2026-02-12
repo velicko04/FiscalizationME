@@ -4,8 +4,8 @@ namespace App\Enums;
 
 enum PaymentMethodType: string
 {
-    case ACCOUNT = 'ACCOUNT';
-    case BUSINESSCARD = 'BUSINESSCARD';
+    case CASH = 'CASH';
+    case CARD = 'CARD';
 }
 
 ?>

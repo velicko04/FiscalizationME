@@ -211,6 +211,340 @@ CREATE TABLE CorrectiveInvoice (
     REFERENCES Invoice(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE Contract (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  contract_number VARCHAR(100),
+  company_id INT,
+  buyer_id INT,
+  start_date DATE,
+  end_date DATE,
+  billing_frequency VARCHAR(20),   
+  issue_day INT,                   
+  status VARCHAR(20),              
+  created_at DATETIME,
+
+  CONSTRAINT fk_contract_company
+    FOREIGN KEY (company_id)
+    REFERENCES Company(id)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT fk_contract_buyer
+    FOREIGN KEY (buyer_id)
+    REFERENCES Buyer(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE ContractItem (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  contract_id INT,
+  product_id INT,
+  quantity DECIMAL(15,4),
+  unit_price DECIMAL(15,4),
+  vat_rate_id INT,
+
+  CONSTRAINT fk_contract_item_contract
+    FOREIGN KEY (contract_id)
+    REFERENCES Contract(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_contract_item_product
+    FOREIGN KEY (product_id)
+    REFERENCES Product(id)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT fk_contract_item_vat_rate
+    FOREIGN KEY (vat_rate_id)
+    REFERENCES VatRate(id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+ALTER TABLE Invoice
+ADD COLUMN contract_id INT NULL,
+ADD CONSTRAINT fk_invoice_contract
+  FOREIGN KEY (contract_id)
+  REFERENCES Contract(id)
+  ON DELETE SET NULL;
+  
+
+
+
+-- 1️⃣ VAT RATES
+-- --------------------------------------------------
+INSERT INTO VatRate (name, percentage, vat_exemption_reason)
+VALUES 
+('Standard 21%', 21.00, NULL),
+('Reduced 7%', 7.00, NULL),
+('Exempt 0%', 0.00, 'VAT exempt according to law');
+
+-- --------------------------------------------------
+-- 2️⃣ COMPANY
+-- --------------------------------------------------
+INSERT INTO Company (
+  tax_id_type, tax_id_number, name, country, city, address,
+  enu_code, business_unit_code, software_code,
+  bank_account_number, is_issuer_in_vat
+)
+VALUES (
+  'PIB',
+  '12345678',
+  'Tech Solutions DOO',
+  'Montenegro',
+  'Podgorica',
+  'Bulevar Svetog Petra 12',
+  'ENU001',
+  'BU001',
+  'SW001',
+  '540-123456-78',
+  TRUE
+);
+
+-- --------------------------------------------------
+-- 3️⃣ BUYER
+-- --------------------------------------------------
+INSERT INTO Buyer (
+  tax_id_type, tax_id_number, name, country, city, address
+)
+VALUES (
+  'PIB',
+  '87654321',
+  'Telekom CG',
+  'Montenegro',
+  'Podgorica',
+  'Moskovska 29'
+);
+
+-- --------------------------------------------------
+-- 4️⃣ PRODUCTS
+-- --------------------------------------------------
+INSERT INTO Product (code, name, unit, vat_rate_id)
+VALUES
+('MAG001', 'Magenta Paket', 'kom', 1),
+('INT001', 'Internet Paket 100MB', 'kom', 1),
+('TV001', 'TV Paket Osnovni', 'kom', 2);
+
+-- --------------------------------------------------
+-- 5️⃣ USER (operator)
+-- --------------------------------------------------
+INSERT INTO User (
+  company_id, name, email, operator_code, role, is_active
+)
+VALUES (
+  1,
+  'Andrija Velickovic',
+  'andrija@test.com',
+  'OP001',
+  'admin',
+  TRUE
+);
+
+-- --------------------------------------------------
+-- 6️⃣ CONTRACT
+-- --------------------------------------------------
+INSERT INTO Contract (
+  contract_number,
+  company_id,
+  buyer_id,
+  start_date,
+  end_date,
+  billing_frequency,
+  issue_day,
+  status,
+  created_at
+)
+VALUES (
+  'CTR-001',
+  1,
+  1,
+  '2026-01-01',
+  '2026-12-31',
+  'monthly',
+  1,
+  'active',
+  NOW()
+);
+
+-- --------------------------------------------------
+-- 7️⃣ CONTRACT ITEMS
+-- --------------------------------------------------
+INSERT INTO ContractItem (
+  contract_id,
+  product_id,
+  quantity,
+  unit_price,
+  vat_rate_id
+)
+VALUES
+(1, 1, 1, 50.00, 1),
+(1, 2, 1, 20.00, 1);
+
+-- --------------------------------------------------
+-- 8️⃣ INVOICE (generated from contract)
+-- --------------------------------------------------
+INSERT INTO Invoice (
+  invoice_number,
+  order_number,
+  invoice_type,
+  type_of_invoice,
+  issued_at,
+  tax_period,
+  total_price_without_vat,
+  payment_method_type,
+  total_vat_amount,
+  total_price_to_pay,
+  note,
+  payment_deadline,
+  iic,
+  iic_signature,
+  company_id,
+  buyer_id,
+  user_id,
+  created_at,
+  contract_id
+)
+VALUES (
+  'INV-001',
+  1,
+  'REGULAR',
+  'SALE',
+  NOW(),
+  '01/2025',
+  70.00,
+  'CASH',
+  14.70,
+  84.70,
+  'Monthly subscription invoice',
+  '2025-02-01',
+  'IIC123456789',
+  'SIGNATURE_HASH',
+  1,
+  1,
+  1,
+  NOW(),
+  1
+);
+
+-- --------------------------------------------------
+-- 9️⃣ INVOICE ITEMS
+-- --------------------------------------------------
+INSERT INTO InvoiceItem (
+  invoice_id,
+  product_id,
+  quantity,
+  unit_price,
+  vat_rate_id
+)
+VALUES
+(1, 1, 1, 50.00, 1),
+(1, 2, 1, 20.00, 1);
+
+-- --------------------------------------------------
+-- 🔟 CORRECTIVE INVOICE
+-- --------------------------------------------------
+INSERT INTO CorrectiveInvoice (
+  invoice_id,
+  type,
+  reference_iic,
+  original_issue_datetime
+)
+VALUES (
+  1,
+  'CORRECTION',
+  'IIC123456789',
+  NOW()
+);
+
+
+-- --------------------------------------------------
+-- 1️⃣ VAT RATES
+-- --------------------------------------------------
+INSERT INTO VatRate (name, percentage, vat_exemption_reason) VALUES
+('Standard 21%', 21.00, NULL),
+('Reduced 7%', 7.00, NULL),
+('Exempt 0%', 0.00, 'VAT exempt according to law');
+
+-- --------------------------------------------------
+-- 2️⃣ COMPANIES
+-- --------------------------------------------------
+INSERT INTO Company (tax_id_type, tax_id_number, name, country, city, address, enu_code, business_unit_code, software_code, bank_account_number, is_issuer_in_vat) VALUES
+('PIB', '12345678', 'Tech Solutions DOO', 'Montenegro', 'Podgorica', 'Bulevar Svetog Petra 12', 'ENU001', 'BU001', 'SW001', '540-123456-78', TRUE),
+('PIB', '23456789', 'SoftNet DOO', 'Montenegro', 'Budva', 'Riva 5', 'ENU002', 'BU002', 'SW002', '540-234567-89', TRUE);
+
+-- --------------------------------------------------
+-- 3️⃣ BUYERS
+-- --------------------------------------------------
+INSERT INTO Buyer (tax_id_type, tax_id_number, name, country, city, address) VALUES
+('PIB', '87654321', 'Telekom CG', 'Montenegro', 'Podgorica', 'Moskovska 29'),
+('PIB', '76543210', 'Vodafone CG', 'Montenegro', 'Budva', 'Marina 12');
+
+-- --------------------------------------------------
+-- 4️⃣ PRODUCTS
+-- --------------------------------------------------
+INSERT INTO Product (code, name, unit, vat_rate_id) VALUES
+('MAG001', 'Magenta Paket', 'kom', 1),
+('INT001', 'Internet Paket 100MB', 'kom', 1),
+('TV001', 'TV Paket Osnovni', 'kom', 2),
+('INT002', 'Internet Paket 200MB', 'kom', 1),
+('TV002', 'TV Paket Premium', 'kom', 1);
+
+-- --------------------------------------------------
+-- 5️⃣ USERS
+-- --------------------------------------------------
+INSERT INTO User (company_id, name, email, operator_code, role, is_active) VALUES
+(1, 'Andrija Velickovic', 'andrija@test.com', 'OP001', 'admin', TRUE),
+(2, 'Marko Petrovic', 'marko@test.com', 'OP002', 'user', TRUE);
+
+-- --------------------------------------------------
+-- 6️⃣ CONTRACTS
+-- --------------------------------------------------
+INSERT INTO Contract (contract_number, company_id, buyer_id, start_date, end_date, billing_frequency, issue_day, status, created_at) VALUES
+('CTR-001', 1, 1, '2026-01-01', '2026-12-31', 'monthly', 1, 'active', NOW()),
+('CTR-002', 1, 2, '2026-02-01', '2026-12-31', 'monthly', 5, 'active', NOW()),
+('CTR-003', 2, 1, '2026-03-01', '2026-12-31', 'quarterly', 10, 'active', NOW());
+
+-- --------------------------------------------------
+-- 7️⃣ CONTRACT ITEMS
+-- --------------------------------------------------
+INSERT INTO ContractItem (contract_id, product_id, quantity, unit_price, vat_rate_id) VALUES
+(1, 1, 1, 50.00, 1),
+(1, 2, 1, 20.00, 1),
+(2, 1, 2, 50.00, 1),
+(2, 3, 1, 30.00, 2),
+(3, 4, 1, 25.00, 1),
+(3, 5, 1, 60.00, 1);
+
+-- --------------------------------------------------
+-- 8️⃣ INVOICES
+-- --------------------------------------------------
+INSERT INTO Invoice (invoice_number, order_number, invoice_type, type_of_invoice, issued_at, tax_period, total_price_without_vat, payment_method_type, total_vat_amount, total_price_to_pay, note, payment_deadline, iic, iic_signature, company_id, buyer_id, user_id, created_at, contract_id) VALUES
+('INV-001', 1, 'REGULAR', 'SALE', NOW(), '01/2026', 70.00, 'CASH', 14.70, 84.70, 'Monthly subscription invoice', '2026-02-01', 'IIC123456789', 'SIGNATURE_HASH', 1, 1, 1, NOW(), 1),
+('INV-002', 2, 'REGULAR', 'SALE', NOW(), '02/2026', 130.00, 'CARD', 27.30, 157.30, 'Monthly subscription invoice', '2026-03-01', 'IIC987654321', 'SIGNATURE_HASH2', 1, 2, 1, NOW(), 2);
+
+-- --------------------------------------------------
+-- 9️⃣ INVOICE ITEMS
+-- --------------------------------------------------
+INSERT INTO InvoiceItem (invoice_id, product_id, quantity, unit_price, vat_rate_id) VALUES
+(1, 1, 1, 50.00, 1),
+(1, 2, 1, 20.00, 1),
+(2, 1, 2, 50.00, 1),
+(2, 3, 1, 30.00, 2);
+
+-- --------------------------------------------------
+-- 🔟 CORRECTIVE INVOICES
+-- --------------------------------------------------
+INSERT INTO CorrectiveInvoice (invoice_id, type, reference_iic, original_issue_datetime) VALUES
+(1, 'CORRECTION', 'IIC123456789', NOW()),
+(2, 'CORRECTION', 'IIC987654321', NOW());
+
+
+
+
+
+
+
+
+
 </string>
 			<key>view</key>
 			<string>SP_VIEW_CUSTOMQUERY</string>

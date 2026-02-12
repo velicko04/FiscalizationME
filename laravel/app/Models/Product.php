@@ -28,4 +28,9 @@ class Product extends Model
     {
         return $this->hasMany(InvoiceItem::class, 'product_id');
     }
+
+    public function contractItems(): HasMany
+    {
+        return $this->hasMany(ContractItem::class, 'product_id');
+    }
 }

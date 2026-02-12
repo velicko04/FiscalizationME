@@ -33,6 +33,7 @@ class Invoice extends Model
         'company_id',
         'buyer_id',
         'user_id',
+        'contract_id',
         'created_at',
     ];
 
@@ -71,4 +72,10 @@ class Invoice extends Model
     {
         return $this->hasMany(CorrectiveInvoice::class, 'invoice_id');
     }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class, 'contract_id');
+    }
+
 }

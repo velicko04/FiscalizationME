@@ -29,4 +29,9 @@ class Buyer extends Model
     {
         return $this->hasMany(Invoice::class, 'buyer_id');
     }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'buyer_id');
+    }
 }

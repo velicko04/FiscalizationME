@@ -30,4 +30,9 @@ class VatRate extends Model
     {
         return $this->hasMany(InvoiceItem::class, 'vat_rate_id');
     }
+
+    public function contractItems(): HasMany
+    {
+        return $this->hasMany(ContractItem::class, 'vat_rate_id');
+    }
 }
