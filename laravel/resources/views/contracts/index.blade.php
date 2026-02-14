@@ -1,14 +1,24 @@
 <h1>Ugovori</h1>
 
-<!-- Filter dropdown -->
-<form method="GET" action="{{ route('contracts.index') }}" style="margin-top: 15px;">
-    <select name="status" onchange="this.form.submit()">
-        <option value="">All</option>
-        <option value="active" {{ $status == 'active' ? 'selected' : '' }}>Active</option>
-        <option value="expired" {{ $status == 'expired' ? 'selected' : '' }}>Expired</option>
-        <option value="paused" {{ $status == 'paused' ? 'selected' : '' }}>Paused</option>
-    </select>
-</form>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <!-- Filter lijevo -->
+    <form method="GET" action="{{ route('contracts.index') }}">
+        <select name="status" onchange="this.form.submit()">
+            <option value="">All</option>
+            <option value="active" {{ $status == 'active' ? 'selected' : '' }}>Active</option>
+            <option value="expired" {{ $status == 'expired' ? 'selected' : '' }}>Expired</option>
+            <option value="paused" {{ $status == 'paused' ? 'selected' : '' }}>Paused</option>
+        </select>
+    </form>
+
+    <!-- Dugmad desno -->
+    <div>
+        <button onclick="window.location='{{ route('contracts.create') }}'">Dodaj novi ugovor</button>
+        <button onclick="window.location='{{ route('invoices.index') }}'" style="margin-left: 10px;">Prikaži sve račune</button>
+    </div>
+</div>
+
+
 
 <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
     <thead style="background-color: #f0f0f0;">
@@ -20,8 +30,8 @@
             <th>Kraj</th>
             <th>Status</th>
             <th>Proizvodi</th>
-            <th>Ukupno (sa VAT)</th>
-            <th>Detalji ugovora</th>
+            <th>Ukupno (sa PDV)</th>
+            <th>Računi</th>
         </tr>
     </thead>
     <tbody>
@@ -36,13 +46,16 @@
             <td>
                 <ul>
                     @foreach($contract->items as $item)
-                        <li>{{ $item->product->name }} - {{ $item->quantity }} x {{ number_format($item->unit_price, 2) }} (VAT: {{ $item->product->vatRate->percentage }}%)</li>
+                        <li>{{ $item->product->name }} - {{ $item->quantity }} x {{ number_format($item->unit_price, 2) }} (PDV: {{ $item->product->vatRate->percentage }}%)</li>
                     @endforeach
                 </ul>
             </td>
             <td>{{ number_format($contract->total_amount, 2) }}</td>
             <td>
-                <a href="{{ route('contracts.show', $contract->id) }}">Detalji</a>
+                <a href="{{ route('contracts.invoices', $contract->id) }}">
+                    Pogledaj račune
+                </a>
+
             </td>
         </tr>
         @endforeach

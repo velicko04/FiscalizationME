@@ -10,8 +10,9 @@ Route::get('/', function () {
 });
 
 Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
-Route::get('/contracts/{id}', [ContractController::class, 'show'])->name('contracts.show');
+Route::get('/contracts/create', [ContractController::class, 'create'])->name('contracts.create');
+Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store');
+Route::get('/contracts/{id}/invoices', [ContractController::class, 'invoices'])->name('contracts.invoices');
 Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
-Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
-Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
 
