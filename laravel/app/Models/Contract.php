@@ -49,4 +49,28 @@ class Contract extends Model
     {
         return $this->hasMany(Invoice::class, 'contract_id');
     }
+
+    public function getTotalAmountAttribute()
+{
+    $total = 0;
+
+    foreach ($this->items as $item) {
+
+        $vatPercentage = 0;
+
+        if ($item->product && $item->product->vatRate) {
+            $vatPercentage = $item->product->vatRate->percentage;
+        }
+
+        $base = $item->unit_price * $item->quantity;
+        $vatAmount = $base * ($vatPercentage / 100);
+
+        $total += $base + $vatAmount;
+    }
+
+    return $total;
 }
+
+}
+
+

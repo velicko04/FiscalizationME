@@ -13,31 +13,30 @@ use App\Models\Invoice;
 class ContractController extends Controller
 {
     // Lista svih ugovora
-  public function index(Request $request)
+public function index(Request $request)
 {
-    $status = $request->query('status'); // npr. ?status=active
+    $query = Contract::with(['company', 'buyer', 'items.product.vatRate']);
 
-    $query = Contract::with('items.product.vatRate', 'company', 'buyer');
-
-    if ($status) {
-        $query->where('status', $status);
+    // STATUS FILTER
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
     }
 
-    $contracts = $query->get()->map(function($contract) {
-        $total = 0;
-        foreach ($contract->items as $item) {
-            // pazimo da quantity i unit_price budu float
-            $quantity = (float) $item->quantity;
-            $unit_price = (float) $item->unit_price;
-            $vat = $item->product->vatRate ? (float)$item->product->vatRate->percentage : 0;
-            $total += $quantity * $unit_price * (1 + $vat / 100);
-        }
-        $contract->total_amount = $total;
-        return $contract;
-    });
+    // LAST X DAYS FILTER
+    if ($request->filled('range')) {
+        $query->where('start_date', '>=', now()->subDays($request->range));
+    }
 
-    return view('contracts.index', compact('contracts', 'status'));
+    // CUSTOM DATE RANGE FILTER
+    if ($request->filled('from') && $request->filled('to')) {
+        $query->whereBetween('start_date', [$request->from, $request->to]);
+    }
+
+    $contracts = $query->orderBy('start_date', 'desc')->get();
+
+    return view('contracts.index', compact('contracts'));
 }
+
 
 public function invoices($id)
 {
@@ -103,5 +102,48 @@ public function store(Request $request)
     return redirect()->route('contracts.index')
         ->with('success', 'Ugovor je uspješno dodat!');
 }
+
+public function edit($id)
+{
+    $contract = Contract::with('items')->findOrFail($id);
+    $products = Product::all();
+
+    return view('contracts.edit', compact('contract', 'products'));
+}
+
+
+public function update(Request $request, $id)
+{
+    $contract = Contract::findOrFail($id);
+
+    $contract->update([
+        'start_date' => $request->start_date,
+        'end_date' => $request->end_date,
+        'billing_frequency' => $request->billing_frequency,
+        'issue_day' => $request->issue_day,
+        'status' => $request->status,
+    ]);
+
+    // OBRIŠI stare stavke
+    $contract->items()->delete();
+
+    // Dodaj nove
+    if ($request->products) {
+        foreach ($request->products as $index => $productId) {
+
+            ContractItem::create([
+                'contract_id' => $contract->id,
+                'product_id' => $productId,
+                'quantity' => $request->quantities[$index],
+                'unit_price' => $request->prices[$index],
+                'vat_rate_id' => Product::find($productId)->vat_rate_id
+            ]);
+        }
+    }
+
+    return redirect()->route('contracts.index')
+        ->with('success', 'Ugovor uspješno izmijenjen.');
+}
+
 
 }
