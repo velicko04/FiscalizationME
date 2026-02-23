@@ -539,7 +539,40 @@ INSERT INTO CorrectiveInvoice (invoice_id, type, reference_iic, original_issue_d
 
 
 
+INSERT INTO Company (tax_id_type, tax_id_number, name, country, city, address, enu_code, business_unit_code, software_code, bank_account_number, is_issuer_in_vat) VALUES
+('PIB', '34567890', 'HardNet DOO', 'Montenegro', 'Podgorica', 'Moskovska 3', 'ENU003', 'BU003', 'SW003', '540-123956-78', TRUE),
+('PIB', '23456789', 'TechNet DOO', 'Montenegro', 'Tivat', 'Riva 5', 'ENU004', 'BU004', 'SW004', '540-634567-89', TRUE),
+('PIB', '17892957', 'SoftwareIT DOO', 'Montenegro', 'Budva', 'Nikole Tesle 14', 'ENU005', 'BU005', 'SW005', '540-654567-89', TRUE),
+('PIB', '73984857', 'CSdata DOO', 'Montenegro', 'Risan', 'Jovana Cvijica 1', 'ENU006', 'BU006', 'SW006', '540-634647-89', TRUE),
+('PIB', '57867868', 'TechAI DOO', 'Montenegro', 'Pljevlja', 'Narodnih Heroja 44', 'ENU007', 'BU007', 'SW007', '540-634519-89', TRUE);
 
+
+INSERT INTO Buyer (tax_id_type, tax_id_number, name, country, city, address) VALUES
+('PIB', '65432109', 'Elektroprivreda CG', 'Montenegro', 'Nikšić', 'Vuka Karadžića 2'),
+('PIB', '54321098', 'Crnogorski Telekom Servis', 'Montenegro', 'Herceg Novi', 'Njegoševa 15'),
+('PIB', '43210987', 'Luka Bar', 'Montenegro', 'Bar', 'Obala 13 Jula bb'),
+('PIB', '32109876', 'Plantaže 13. Jul', 'Montenegro', 'Podgorica', 'Cetinjski put bb'),
+('PIB', '21098765', 'Aqua Mont Service', 'Montenegro', 'Kotor', 'Stari Grad 3'),
+('PIB', '10987654', 'Adriatic Trade', 'Montenegro', 'Tivat', 'Jadranska Magistrala 45'),
+('PIB', '99887766', 'Montenegro Logistic', 'Montenegro', 'Danilovgrad', 'Industrijska Zona bb'),
+('PIB', '88776655', 'Primorje Invest', 'Montenegro', 'Ulcinj', 'Bulevar Teuta 21');
+
+
+
+ALTER TABLE Product
+ADD COLUMN price DECIMAL(15,4) NOT NULL DEFAULT 0;
+
+
+UPDATE Product SET price = 50.00 WHERE id = 1;
+UPDATE Product SET price = 20.00 WHERE id = 2;
+UPDATE Product SET price = 30.00 WHERE id = 3;
+UPDATE Product SET price = 25.00 WHERE id = 4;
+UPDATE Product SET price = 60.00 WHERE id = 5;
+UPDATE Product SET price = 30.00 WHERE id = 6;
+UPDATE Product SET price = 40.00 WHERE id = 7;
+UPDATE Product SET price = 50.00 WHERE id = 8;
+
+SELECT * FROM PRODUCT;
 
 
 

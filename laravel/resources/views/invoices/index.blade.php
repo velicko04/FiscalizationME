@@ -1,293 +1,296 @@
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background-color: #f9fafb;
-        color: #111827;
-        padding: 24px;
-    }
-
-    .invoice-container {
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 32px;
-    }
-
-    .page-header h1 {
-        font-size: 28px;
-        font-weight: 600;
-        color: #111827;
-        margin-bottom: 8px;
-    }
-
-    .filter-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        gap: 16px;
-        flex-wrap: wrap;
-    }
-
-    .date-filter {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .date-filter select,
-    .date-filter input {
-        height: 38px;
-        padding: 0 14px;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        font-size: 14px;
-        background: white;
-        color: #374151;
-        transition: all 0.2s;
-    }
-
-    .date-filter select:hover,
-    .date-filter input:hover {
-        border-color: #9ca3af;
-    }
-
-    .date-filter select:focus,
-    .date-filter input:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .date-filter button {
-        height: 38px;
-        padding: 0 20px;
-        border-radius: 8px;
-        border: none;
-        background: #3b82f6;
-        color: white;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .date-filter button:hover {
-        background: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-    }
-
-    .back-button a {
-        text-decoration: none;
-    }
-
-    .back-button button {
-        height: 38px;
-        padding: 0 20px;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        background: white;
-        color: #374151;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .back-button button:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-        transform: translateY(-1px);
-    }
-
-    .table-wrapper {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    thead {
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    thead th {
-        padding: 16px 20px;
-        text-align: left;
-        font-size: 12px;
-        font-weight: 600;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    tbody tr {
-        border-bottom: 1px solid #f3f4f6;
-        transition: background-color 0.15s;
-    }
-
-    tbody tr:hover {
-        background-color: #f9fafb;
-    }
-
-    tbody tr:last-child {
-        border-bottom: none;
-    }
-
-    tbody td {
-        padding: 16px 20px;
-        font-size: 14px;
-        color: #374151;
-        vertical-align: top;
-    }
-
-    tbody td:first-child {
-        font-weight: 500;
-        color: #111827;
-    }
-
-    .product-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .product-list li {
-        padding: 6px 0;
-        font-size: 13px;
-        color: #6b7280;
-        line-height: 1.5;
-    }
-
-    .product-list li:first-child {
-        padding-top: 0;
-    }
-
-    .product-list li:last-child {
-        padding-bottom: 0;
-    }
-
-    @media (max-width: 768px) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Računi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            padding: 16px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
         }
-
+        
+        .invoice-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
         .page-header h1 {
-            font-size: 24px;
+            font-size: 42px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
+        
+        .controls-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 32px;
+            margin-bottom: 32px;
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .filter-container {
-            flex-direction: column;
-            align-items: stretch;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
         }
-
+        
         .date-filter {
-            flex-direction: column;
-            align-items: stretch;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex: 1;
         }
-
+        
         .date-filter select,
-        .date-filter input,
-        .date-filter button,
+        .date-filter input {
+            height: 44px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            font-size: 14px;
+            background: #f9fafb;
+            color: #374151;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .date-filter select:hover,
+        .date-filter input:hover {
+            border-color: #d1d5db;
+            background: white;
+        }
+        
+        .date-filter select:focus,
+        .date-filter input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+        
+        .date-filter button {
+            height: 44px;
+            padding: 0 24px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .date-filter button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+        }
+        
+        .back-button a {
+            text-decoration: none;
+        }
+        
         .back-button button {
-            width: 100%;
+            height: 44px;
+            padding: 0 24px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
         }
-
-        .table-wrapper {
-            overflow-x: auto;
+        
+        .back-button button:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-2px);
         }
-
+        
+        .table-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: slideUp 0.6s ease;
+        }
+        
         table {
-            min-width: 1000px;
+            width: 100%;
+            border-collapse: collapse;
         }
-    }
-</style>
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        thead th {
+            padding: 20px 24px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #f3f4f6;
+            transition: all 0.3s ease;
+        }
+        
+        tbody tr:hover {
+            background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+        }
+        
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        tbody td {
+            padding: 20px 24px;
+            font-size: 14px;
+            color: #374151;
+            vertical-align: top;
+        }
+        
+        tbody td:first-child {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 15px;
+        }
+        
+        .product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .product-list li {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        
+        .product-list li:first-child {
+            padding-top: 0;
+        }
+        
+        .product-list li:last-child {
+            padding-bottom: 0;
+        }
+        
+        @media (max-width: 1024px) {
+            body { padding: 20px 16px; }
+            .page-header h1 { font-size: 32px; }
+            .controls-card { padding: 24px; }
+            .filter-container { flex-direction: column; align-items: stretch; }
+            .date-filter { flex-direction: column; align-items: stretch; }
+            .date-filter select, .date-filter input, .date-filter button, .back-button button { width: 100%; }
+            .table-card { overflow-x: auto; }
+            table { min-width: 1000px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="page-header">
+            <h1>Računi</h1>
+        </div>
 
-<div class="invoice-container">
-    <div class="page-header">
-        <h1>Računi</h1>
-    </div>
+        <div class="controls-card">
+            <div class="filter-container">
+                {{-- DATE FILTER --}}
+                <form method="GET" action="{{ route('invoices.index') }}" class="date-filter">
+                    <select name="range">
+                        <option value="">All time</option>
+                        <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
+                        <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
+                        <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
+                    </select>
 
-    <div class="filter-container">
-        {{-- DATE FILTER --}}
-        <form method="GET" action="{{ route('invoices.index') }}" class="date-filter">
-            <select name="range">
-                <option value="">All time</option>
-                <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
-                <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
-                <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
-            </select>
+                    <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
+                    <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
 
-            <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
-            <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
+                    <button type="submit">🔍 Pretraži</button>
+                </form>
 
-            <button type="submit">Pretraži</button>
-        </form>
+                <div class="back-button">
+                    <a href="{{ route('contracts.index') }}">
+                        <button>⬅ Nazad na ugovore</button>
+                    </a>
+                </div>
+            </div>
+        </div>
 
-        <div class="back-button">
-            <a href="{{ route('contracts.index') }}">
-                <button>⬅ Nazad na ugovore</button>
-            </a>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Broj računa</th>
+                        <th>Kompanija</th>
+                        <th>Kupac</th>
+                        <th>Prodavac</th>
+                        <th>Datum izdavanja</th>
+                        <th>Ukupno (sa PDV)</th>
+                        <th>Ukupno PDV</th>
+                        <th>Metoda plaćanja</th>
+                        <th>Proizvodi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($invoices as $invoice)
+                    <tr>
+                        <td>{{ $invoice->invoice_number }}</td>
+                        <td>{{ $invoice->company->name }}</td>
+                        <td>{{ $invoice->buyer->name }}</td>
+                        <td>{{ $invoice->user->name }}</td>
+                        <td>{{ $invoice->issued_at }}</td>
+                        <td><strong>{{ number_format($invoice->total_price_to_pay, 2) }}</strong></td>
+                        <td>{{ number_format($invoice->total_vat_amount, 2) }}</td>
+                        <td>{{ $invoice->payment_method_type }}</td>
+                        <td>
+                            <ul class="product-list">
+                                @foreach($invoice->items as $item)
+                                    <li>
+                                        {{ $item->product->name }} -
+                                        {{ $item->quantity }} x
+                                        {{ number_format($item->unit_price, 2) }}
+                                        (PDV: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Broj računa</th>
-                    <th>Kompanija</th>
-                    <th>Kupac</th>
-                    <th>Prodavac</th>
-                    <th>Datum izdavanja</th>
-                    <th>Ukupno (sa PDV)</th>
-                    <th>Ukupno PDV</th>
-                    <th>Metoda plaćanja</th>
-                    <th>Proizvodi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($invoices as $invoice)
-                <tr>
-                    <td>{{ $invoice->invoice_number }}</td>
-                    <td>{{ $invoice->company->name }}</td>
-                    <td>{{ $invoice->buyer->name }}</td>
-                    <td>{{ $invoice->user->name }}</td>
-                    <td>{{ $invoice->issued_at }}</td>
-                    <td>{{ number_format($invoice->total_price_to_pay, 2) }}</td>
-                    <td>{{ number_format($invoice->total_vat_amount, 2) }}</td>
-                    <td>{{ $invoice->payment_method_type }}</td>
-                    <td>
-                        <ul class="product-list">
-                            @foreach($invoice->items as $item)
-                                <li>
-                                    {{ $item->product->name }} -
-                                    {{ $item->quantity }} x
-                                    {{ number_format($item->unit_price, 2) }}
-                                    (PDV: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
-                                </li>
-                            @endforeach
-                        </ul>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
+</body>
+</html>

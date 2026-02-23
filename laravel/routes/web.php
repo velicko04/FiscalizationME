@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProductController;
+
 
 
 Route::get('/', function () {
@@ -17,5 +19,5 @@ Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.ind
 Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
 Route::get('/contracts/{id}/edit', [ContractController::class, 'edit'])->name('contracts.edit');
 Route::put('/contracts/{id}', [ContractController::class, 'update'])->name('contracts.update');
-
+Route::post('/products/ajax-store', [ProductController::class, 'ajaxStore'])->name('products.ajaxStore');
 

@@ -17,6 +17,7 @@ class Product extends Model
         'name',
         'unit',
         'vat_rate_id',
+        'price',
     ];
 
     public function vatRate(): BelongsTo
