@@ -8,12 +8,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate deploy config
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || 22 }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          [ -n "$DEPLOY_HOST" ] || { echo "Missing DEPLOY_HOST (set Secret or Variable)"; exit 1; }
+          [ -n "$DEPLOY_USER" ] || { echo "Missing DEPLOY_USER (set Secret or Variable)"; exit 1; }
+          [ -n "$DEPLOY_SSH_KEY" ] || { echo "Missing DEPLOY_SSH_KEY (must be Secret)"; exit 1; }
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          host: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          port: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || 22 }}
           script: |
             /code/fiskalizacija/FiscalizationME/scripts/deploy.sh
