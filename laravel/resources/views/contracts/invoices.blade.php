@@ -370,12 +370,22 @@ function fiskalizuj(invoiceId) {
         },
         body: JSON.stringify({})
     })
-    .then(response => response.json())
-    .then(data => {
-        // Prikaz SOAP odgovora u alert
+    .then(async response => {
+        const text = await response.text(); // uzimamo raw text
+        let data;
+        try {
+            data = JSON.parse(text); // pokušaj parse JSON
+        } catch (e) {
+            console.error('Nije validan JSON:', text);
+            alert('Nevalidan odgovor sa servera. Pogledaj konzolu za detalje.');
+            return;
+        }
+
+        console.log('Fiskalizacija response:', data); // log u konzolu
         alert(`Status: ${data.status}\nOdgovor poreske:\n${data.body}`);
     })
     .catch(err => {
+        console.error('Fetch greška:', err);
         alert('Greška prilikom slanja: ' + err);
     });
 }

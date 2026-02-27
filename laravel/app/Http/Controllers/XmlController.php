@@ -53,18 +53,23 @@ class XmlController extends Controller
 
         // Opcionalno: digitalni potpis
         $certPath = config('services.tax.cert_path');
-        $keyPath  = config('services.tax.key_path');
-        if ($certPath && $keyPath) {
-            $xml = $this->signXml($xml, $certPath, $keyPath);
+        $password = config('services.tax.cert_password'); // lozinka iz .env
+        try {
+            if ($certPath && $password) {
+                $xml = $this->signXml($xml, $certPath, $password);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Greška prilikom potpisa XML:', ['message' => $e->getMessage()]);
+            return response()->json([
+                'status' => 500,
+                'body' => "Greška pri potpisu: " . $e->getMessage()
+            ]);
         }
 
         // Slanje na testni endpoint
         $response = $this->sendToTax($xml);
 
-        return response()->json([
-            'status' => $response['status'],
-            'body' => $response['body']
-        ]);
+        return response()->json($response);
     }
 
     protected function mapInvoiceToDTO($invoice)
@@ -156,6 +161,14 @@ class XmlController extends Controller
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        // Log za debug
+        \Log::info('Fiskalizacija cURL debug', [
+            'http_code' => $httpCode,
+            'error' => $err,
+            'response' => $response,
+            'xml_length' => strlen($xml),
+        ]);
+
         if ($err) {
             return [
                 'status' => 500,
@@ -187,7 +200,32 @@ class XmlController extends Controller
         throw new \Exception("Sertifikat ne sadrži privatni ključ ili javni certifikat.");
     }
 
-    // Za test: vraćamo samo XML, bez stvarnog potpisa
-    return $xml;
+    // Kreiramo DOMDocument iz XML stringa
+    $dom = new \DOMDocument();
+    $dom->loadXML($xml);
+
+    // Ako FiscalXmlBuilder već ne ubacuje <Signature>, možemo napraviti placeholder
+    $signatureEl = $dom->getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature')->item(0);
+    if (!$signatureEl) {
+        $signatureEl = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'Signature');
+        $dom->documentElement->appendChild($signatureEl);
+    }
+
+    // Canonical form XML-a
+    $canonicalXml = $dom->C14N();
+
+    // Potpisivanje
+    $privateKeyId = openssl_pkey_get_private($privateKey);
+    openssl_sign($canonicalXml, $signatureValue, $privateKeyId, OPENSSL_ALGO_SHA256);
+    $signatureB64 = base64_encode($signatureValue);
+
+    // Ubacujemo potpis u Signature element
+    while ($signatureEl->firstChild) {
+        $signatureEl->removeChild($signatureEl->firstChild);
+    }
+    $sigValueEl = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'SignatureValue', $signatureB64);
+    $signatureEl->appendChild($sigValueEl);
+
+    return $dom->saveXML();
 }
 }
