@@ -104,10 +104,9 @@ class XmlController extends Controller
         $companyDTO->name = $invoice->company->name;
         $companyDTO->address = $invoice->company->address;
         $companyDTO->city = $invoice->company->city;
-        // ✅ Validni test kodovi za poresku
-        $companyDTO->business_unit_code = 'ab123cd456';
-        $companyDTO->software_code = 'sw123ef789';
-        $companyDTO->enu_code = 'en456gh123';
+        $companyDTO->business_unit_code = $invoice->company->business_unit_code;
+        $companyDTO->software_code = $invoice->company->software_code;
+        $companyDTO->enu_code = $invoice->company->enu_code;
         $companyDTO->tax_id_number = $invoice->company->tax_id_number;
         $companyDTO->tax_id_type = $invoice->company->tax_id_type;
         $companyDTO->is_issuer_in_vat = $invoice->company->is_issuer_in_vat;
