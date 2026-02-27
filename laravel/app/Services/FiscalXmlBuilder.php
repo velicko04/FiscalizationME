@@ -12,30 +12,65 @@ class FiscalXmlBuilder
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
 
-        // Root element sa namespace
-        $root = $dom->createElementNS('https://efi.tax.gov.me/fs/schema', 'RegisterInvoiceRequest');
+        /*
+        |--------------------------------------------------------------------------
+        | 1️⃣ SOAP ENVELOPE
+        |--------------------------------------------------------------------------
+        */
+        $envelope = $dom->createElementNS(
+            'http://schemas.xmlsoap.org/soap/envelope/',
+            'SOAP-ENV:Envelope'
+        );
+        $dom->appendChild($envelope);
+
+        $soapHeader = $dom->createElement('SOAP-ENV:Header');
+        $envelope->appendChild($soapHeader);
+
+        $soapBody = $dom->createElement('SOAP-ENV:Body');
+        $envelope->appendChild($soapBody);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2️⃣ RegisterInvoiceRequest
+        |--------------------------------------------------------------------------
+        */
+        $root = $dom->createElementNS(
+            'https://efi.tax.gov.me/fs/schema',
+            'RegisterInvoiceRequest'
+        );
+
+        $root->setAttribute('xmlns:ns2', 'http://www.w3.org/2000/09/xmldsig#');
         $root->setAttribute('Id', 'Request');
         $root->setAttribute('Version', '1');
-        $dom->appendChild($root);
 
-        // Header
+        $soapBody->appendChild($root);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3️⃣ HEADER
+        |--------------------------------------------------------------------------
+        */
         $header = $dom->createElement('Header');
         $header->setAttribute('SendDateTime', $sendDateTime);
         $header->setAttribute('UUID', $uuid);
         $root->appendChild($header);
 
-        // Invoice
-        $invoiceEl = $dom->createElement('Invoice');
+        /*
+        |--------------------------------------------------------------------------
+        | 4️⃣ INVOICE
+        |--------------------------------------------------------------------------
+        */
+        $company = $invoice->company;
+        $user = $invoice->user;
 
-        $company = $invoice->company; // CompanyDTO ili model
-        $user = $invoice->user;       // UserDTO ili model
+        $invoiceEl = $dom->createElement('Invoice');
 
         $invoiceEl->setAttribute('BusinUnitCode', $company->business_unit_code);
         $invoiceEl->setAttribute('IssueDateTime', $invoice->issued_at->format('c'));
         $invoiceEl->setAttribute('IIC', $invoice->iic ?? '');
         $invoiceEl->setAttribute('IICSignature', $invoice->iic_signature ?? '');
         $invoiceEl->setAttribute('InvNum', $invoice->invoice_number);
-        $invoiceEl->setAttribute('InvOrdNum', $invoice->orderNumber); // DTO property je camelCase
+        $invoiceEl->setAttribute('InvOrdNum', $invoice->orderNumber);
         $invoiceEl->setAttribute('IsIssuerInVAT', $company->is_issuer_in_vat ? 'true' : 'false');
         $invoiceEl->setAttribute('IsReverseCharge', 'false');
         $invoiceEl->setAttribute('IsSimplifiedInv', 'false');
@@ -45,44 +80,66 @@ class FiscalXmlBuilder
         $invoiceEl->setAttribute('TotPrice', number_format($invoice->total_price_to_pay, 2, '.', ''));
         $invoiceEl->setAttribute('TotPriceWoVAT', number_format($invoice->total_price_without_vat, 2, '.', ''));
         $invoiceEl->setAttribute('TotVATAmt', number_format($invoice->total_vat_amount, 2, '.', ''));
-        $invoiceEl->setAttribute('TypeOfInv', strtoupper($invoice->typeOfInvoice->value)); // enum -> string
+        $invoiceEl->setAttribute('TypeOfInv', strtoupper($invoice->typeOfInvoice->value));
 
         $root->appendChild($invoiceEl);
 
-        // PayMethods
+        /*
+        |--------------------------------------------------------------------------
+        | 5️⃣ PAYMENT METHODS
+        |--------------------------------------------------------------------------
+        */
         $payMethods = $dom->createElement('PayMethods');
         $payMethod = $dom->createElement('PayMethod');
         $payMethod->setAttribute('Amt', number_format($invoice->total_price_to_pay, 2, '.', ''));
-        $payMethod->setAttribute('Type', strtoupper($invoice->paymentMethod->value)); // enum -> string
+        $payMethod->setAttribute('Type', strtoupper($invoice->paymentMethod->value));
         $payMethods->appendChild($payMethod);
         $invoiceEl->appendChild($payMethods);
 
-        // Seller
+        /*
+        |--------------------------------------------------------------------------
+        | 6️⃣ SELLER
+        |--------------------------------------------------------------------------
+        */
         $seller = $dom->createElement('Seller');
         $seller->setAttribute('Address', $company->address);
         $seller->setAttribute('Country', 'MNE');
         $seller->setAttribute('IDNum', $company->tax_id_number);
-        $seller->setAttribute('IDType', $company->tax_id_type);
+        $seller->setAttribute('IDType', $company->tax_id_type->value);
         $seller->setAttribute('Name', $company->name);
         $seller->setAttribute('Town', $company->city);
+
         $invoiceEl->appendChild($seller);
 
-        // Buyer (ako postoji)
+        /*
+        |--------------------------------------------------------------------------
+        | 7️⃣ BUYER (ako postoji)
+        |--------------------------------------------------------------------------
+        */
         if ($invoice->buyer) {
+            $buyerDTO = $invoice->buyer;
+
             $buyer = $dom->createElement('Buyer');
-            $buyer->setAttribute('Address', $invoice->buyer->address);
+            $buyer->setAttribute('Address', $buyerDTO->address);
             $buyer->setAttribute('Country', 'MNE');
-            $buyer->setAttribute('IDNum', $invoice->buyer->taxIdNumber);
-            $buyer->setAttribute('IDType', $invoice->buyer->taxIdType->value); // enum -> string
-            $buyer->setAttribute('Name', $invoice->buyer->name);
-            $buyer->setAttribute('Town', $invoice->buyer->city);
+            $buyer->setAttribute('IDNum', $buyerDTO->taxIdNumber);
+            $buyer->setAttribute('IDType', $buyerDTO->taxIdType->value);
+            $buyer->setAttribute('Name', $buyerDTO->name);
+            $buyer->setAttribute('Town', $buyerDTO->city);
+
             $invoiceEl->appendChild($buyer);
         }
 
-        // Items
+        /*
+        |--------------------------------------------------------------------------
+        | 8️⃣ ITEMS
+        |--------------------------------------------------------------------------
+        */
         $itemsEl = $dom->createElement('Items');
+
         foreach ($invoice->items as $item) {
             $iEl = $dom->createElement('I');
+
             $iEl->setAttribute('C', $item->code ?? '');
             $iEl->setAttribute('N', $item->name);
             $iEl->setAttribute('Q', number_format($item->quantity, 2, '.', ''));
@@ -95,19 +152,60 @@ class FiscalXmlBuilder
             $iEl->setAttribute('VA', number_format($item->vatAmount, 2, '.', ''));
             $iEl->setAttribute('R', '0');
             $iEl->setAttribute('RR', 'false');
+
             $itemsEl->appendChild($iEl);
         }
+
         $invoiceEl->appendChild($itemsEl);
 
-        // SameTaxes
+        /*
+        |--------------------------------------------------------------------------
+        | 9️⃣ SAME TAXES (grupisanje po stopi)
+        |--------------------------------------------------------------------------
+        */
+        $taxGroups = [];
+
+        foreach ($invoice->items as $item) {
+            $rate = $item->vatRate;
+
+            if (!isset($taxGroups[$rate])) {
+                $taxGroups[$rate] = [
+                    'num' => 0,
+                    'base' => 0,
+                    'vat' => 0
+                ];
+            }
+
+            $taxGroups[$rate]['num']++;
+            $taxGroups[$rate]['base'] += $item->totalPriceBeforeVat;
+            $taxGroups[$rate]['vat'] += $item->vatAmount;
+        }
+
         $sameTaxes = $dom->createElement('SameTaxes');
-        $sameTax = $dom->createElement('SameTax');
-        $sameTax->setAttribute('NumOfItems', count($invoice->items));
-        $sameTax->setAttribute('PriceBefVAT', number_format($invoice->total_price_without_vat, 2, '.', ''));
-        $sameTax->setAttribute('VATAmt', number_format($invoice->total_vat_amount, 2, '.', ''));
-        $sameTax->setAttribute('VATRate', number_format($invoice->items[0]->vatRate ?? 0, 2, '.', ''));
-        $sameTaxes->appendChild($sameTax);
+
+        foreach ($taxGroups as $rate => $data) {
+            $sameTax = $dom->createElement('SameTax');
+
+            $sameTax->setAttribute('NumOfItems', $data['num']);
+            $sameTax->setAttribute('PriceBefVAT', number_format($data['base'], 2, '.', ''));
+            $sameTax->setAttribute('VATAmt', number_format($data['vat'], 2, '.', ''));
+            $sameTax->setAttribute('VATRate', number_format($rate, 2, '.', ''));
+
+            $sameTaxes->appendChild($sameTax);
+        }
+
         $invoiceEl->appendChild($sameTaxes);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔟 Signature placeholder (dok nemaš certifikat)
+        |--------------------------------------------------------------------------
+        */
+        $signature = $dom->createElementNS(
+            'http://www.w3.org/2000/09/xmldsig#',
+            'ns2:Signature'
+        );
+        $root->appendChild($signature);
 
         return $dom->saveXML();
     }

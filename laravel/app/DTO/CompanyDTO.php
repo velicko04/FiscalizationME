@@ -2,6 +2,8 @@
 
 namespace App\DTO;
 
+use App\Enums\TaxIdType;
+
 class CompanyDTO
 {
     public string $business_unit_code;
@@ -9,7 +11,7 @@ class CompanyDTO
     public string $enu_code;
     public string $address;
     public string $tax_id_number;
-    public string $tax_id_type;
+    public TaxIdType $tax_id_type;
     public string $name;
     public string $city;
     public bool $is_issuer_in_vat;

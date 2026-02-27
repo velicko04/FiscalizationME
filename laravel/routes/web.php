@@ -14,7 +14,11 @@ use App\Enums\InvoiceType;
 use App\Enums\TypeOfInvoice;
 use App\Enums\PaymentMethodType;
 use App\Enums\TaxIdType;
+use App\Http\Controllers\XmlController;
 
+
+Route::get('/invoice/{id}/xml', [XmlController::class, 'generate'])->name('invoice.xml');
+Route::post('/invoice/{id}/fiskalizuj', [XmlController::class, 'fiskalizuj'])->name('invoice.fiskalizuj');
 Route::get('/test-invoice-xml', function () {
 
     $invoiceDTO = new CreateInvoiceRequest();

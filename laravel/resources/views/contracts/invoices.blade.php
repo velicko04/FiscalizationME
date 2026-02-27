@@ -312,6 +312,7 @@
                         <th>Ukupno PDV</th>
                         <th>Metoda plaćanja</th>
                         <th>Proizvodi</th>
+                        <th>XML</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -337,6 +338,11 @@
                                 @endforeach
                             </ul>
                         </td>
+                        <td>
+                            <button onclick="fiskalizuj({{ $invoice->id }})" style="padding:6px 12px;border-radius:8px;border:none;background:#667eea;color:white;cursor:pointer;">
+                                Fiskalizuj i pošalji
+                            </button>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -351,3 +357,26 @@
     </div>
 </body>
 </html>
+
+
+<script>
+function fiskalizuj(invoiceId) {
+    fetch('/invoice/' + invoiceId + '/fiskalizuj', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Prikaz SOAP odgovora u alert
+        alert(`Status: ${data.status}\nOdgovor poreske:\n${data.body}`);
+    })
+    .catch(err => {
+        alert('Greška prilikom slanja: ' + err);
+    });
+}
+</script>

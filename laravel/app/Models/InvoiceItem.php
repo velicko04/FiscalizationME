@@ -38,4 +38,6 @@ class InvoiceItem extends Model
     {
         return $this->belongsTo(VatRate::class, 'vat_rate_id');
     }
+
+
 }
