@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'tax' => [
+    'cert_path' => env('TAX_CERT_PATH'),
+    'key_path' => env('TAX_CERT_PASSWORD'),
+],
+
 ];
+
+

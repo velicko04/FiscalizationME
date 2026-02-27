@@ -169,4 +169,26 @@ class XmlController extends Controller
             'body' => $response
         ];
     }
+
+    protected function signXml(string $xml, string $certPath, string $password): string
+{
+    if (!file_exists($certPath)) {
+        throw new \Exception("Ne mogu da pronađem sertifikat na: $certPath");
+    }
+
+    $certContent = file_get_contents($certPath);
+    if (!openssl_pkcs12_read($certContent, $certs, $password)) {
+        throw new \Exception("Ne mogu da učitam sertifikat. Proveri lozinku i putanju.");
+    }
+
+    $privateKey = $certs['pkey'] ?? null;
+    $publicCert = $certs['cert'] ?? null;
+
+    if (!$privateKey || !$publicCert) {
+        throw new \Exception("Sertifikat ne sadrži privatni ključ ili javni certifikat.");
+    }
+
+    // Za test: vraćamo samo XML, bez stvarnog potpisa
+    return $xml;
+}
 }
