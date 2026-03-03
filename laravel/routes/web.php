@@ -85,6 +85,10 @@ Route::get('/test-invoice-xml', function () {
     return response($xmlString, 200)->header('Content-Type', 'application/xml');
 });
 
+Route::get('/health', function () {
+    return response('OK', 200);
+});
+
 Route::get('/', function () {
     return view('welcome');
 });
