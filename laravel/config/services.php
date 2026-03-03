@@ -37,6 +37,7 @@ return [
 
     'tax' => [
     'cert_path' => env('TAX_CERT_PATH'),
+    'cert_password' => env('TAX_CERT_PASSWORD'),
     'key_path' => env('TAX_CERT_PASSWORD'),
 ],
 

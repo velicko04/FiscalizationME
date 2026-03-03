@@ -33,7 +33,7 @@ class XmlController extends Controller
         $sendDateTime = now()->format(DATE_ATOM);
 
         $certPath = config('services.tax.cert_path');
-        $password = config('services.tax.cert_password');
+        $password = config('services.tax.cert_password') ?: config('services.tax.key_path');
 
         if (!$certPath || !$password) {
             \Log::error('Nedostaje sertifikat ili lozinka');
@@ -221,12 +221,82 @@ class XmlController extends Controller
     protected function mapInvoiceToDTO($invoice)
     {
         $dto = new CreateInvoiceRequest();
+
+        $invoiceTypeRaw = strtoupper((string) ($invoice->getRawOriginal('invoice_type') ?? 'INVOICE'));
+        $dto->invoiceType = match ($invoiceTypeRaw) {
+            'CORRECTIVE' => \App\Enums\InvoiceType::CORRECTIVE,
+            default => \App\Enums\InvoiceType::INVOICE,
+        };
+
+        $typeOfInvoiceRaw = strtoupper((string) ($invoice->getRawOriginal('type_of_invoice') ?? 'NONCASH'));
+        $dto->typeOfInvoice = match ($typeOfInvoiceRaw) {
+            'SALE' => TypeOfInvoice::SALE,
+            default => TypeOfInvoice::NONCASH,
+        };
+
+        $paymentRaw = strtoupper((string) ($invoice->getRawOriginal('payment_method_type') ?? 'CASH'));
+        $dto->paymentMethod = match ($paymentRaw) {
+            'CARD' => PaymentMethodType::CARD,
+            default => PaymentMethodType::CASH,
+        };
+
         $dto->issued_at = $invoice->issued_at;
-        $dto->invoice_number = $invoice->invoice_number;
-        $dto->orderNumber = $invoice->order_number;
-        $dto->total_price_to_pay = $invoice->total_price_to_pay;
-        $dto->total_price_without_vat = $invoice->total_price_without_vat;
-        $dto->total_vat_amount = $invoice->total_vat_amount;
+        $dto->orderNumber = (int) ($invoice->order_number ?? 1);
+
+        $dto->company = $invoice->company;
+        $year = $invoice->issued_at ? $invoice->issued_at->format('Y') : date('Y');
+        $leftToken = strtolower((string) ($invoice->company->business_unit_code ?? ''));
+        $rightToken = strtolower((string) ($invoice->company->enu_code ?? ''));
+        $rawInvNum = (string) ($invoice->invoice_number ?? '');
+
+        if (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}\/[1-9][0-9]{0,14}\/[0-9]{4}\/[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', strtolower($rawInvNum))) {
+            $dto->invoice_number = strtolower($rawInvNum);
+        } elseif (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', $leftToken) && preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', $rightToken)) {
+            $dto->invoice_number = sprintf('%s/%d/%s/%s', $leftToken, max(1, $dto->orderNumber), $year, $rightToken);
+        } else {
+            $dto->invoice_number = $rawInvNum;
+        }
+
+        $dto->user = $invoice->user;
+
+        if ($invoice->buyer) {
+            $buyer = new BuyerDTO();
+            $buyer->taxIdType = $invoice->buyer->tax_id_type;
+            $buyer->taxIdNumber = $invoice->buyer->tax_id_number;
+            $buyer->name = $invoice->buyer->name;
+            $buyer->country = $invoice->buyer->country ?? 'MNE';
+            $buyer->city = $invoice->buyer->city ?? '';
+            $buyer->address = $invoice->buyer->address ?? '';
+            $dto->buyer = $buyer;
+        }
+
+        foreach ($invoice->items as $item) {
+            $row = new \App\DTO\InvoiceItemDTO();
+            $row->code = $item->product->code ?? null;
+            $row->name = $item->product->name ?? 'Stavka';
+            $row->unit = $item->product->unit ?? 'kom';
+
+            $qty = (float) ($item->quantity ?? 0);
+            $unitPrice = (float) ($item->unit_price ?? 0);
+            $vatRate = (float) ($item->vatRate->rate ?? $item->product->vatRate->rate ?? 0);
+
+            $row->quantity = $qty;
+            $row->unitPrice = $unitPrice;
+            $row->totalPriceBeforeVat = round($qty * $unitPrice, 2);
+            $row->vatRate = $vatRate;
+            $row->vatAmount = round($row->totalPriceBeforeVat * ($vatRate / 100), 2);
+            $row->totalPriceAfterVat = round($row->totalPriceBeforeVat + $row->vatAmount, 2);
+            $row->unitPriceAfterVat = $qty > 0
+                ? round($row->totalPriceAfterVat / $qty, 2)
+                : round($unitPrice * (1 + $vatRate / 100), 2);
+
+            $dto->items[] = $row;
+        }
+
+        $dto->total_price_to_pay = (float) $invoice->total_price_to_pay;
+        $dto->total_price_without_vat = (float) $invoice->total_price_without_vat;
+        $dto->total_vat_amount = (float) $invoice->total_vat_amount;
+
         return $dto;
     }
 }
