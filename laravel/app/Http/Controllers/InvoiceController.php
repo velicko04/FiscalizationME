@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\FiscalLog;
 
 class InvoiceController extends Controller
 {
@@ -44,6 +45,22 @@ class InvoiceController extends Controller
     )->findOrFail($id);
 
     return view('invoices.show', compact('invoice'));
+}
+
+  public function logs(Request $request)
+{
+    $query = FiscalLog::with('invoice');
+
+    // Filter samo po invoice_number
+    if ($request->filled('invoice_number')) {
+        $query->whereHas('invoice', function ($q) use ($request) {
+            $q->where('invoice_number', 'like', '%' . $request->invoice_number . '%');
+        });
+    }
+
+    $logs = $query->orderBy('created_at', 'desc')->get();
+
+    return view('invoices.logs', compact('logs'));
 }
 
 }

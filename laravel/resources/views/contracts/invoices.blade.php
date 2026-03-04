@@ -340,7 +340,7 @@
                         </td>
                         <td>
                             <button onclick="fiskalizuj({{ $invoice->id }})" style="padding:6px 12px;border-radius:8px;border:none;background:#667eea;color:white;cursor:pointer;">
-                                Fiskalizuj i pošalji
+                                Fiskalizuj
                             </button>
                         </td>
                     </tr>

@@ -11,88 +11,108 @@ use App\Enums\TypeOfInvoice;
 use App\Enums\PaymentMethodType;
 use App\Services\FiscalXmlBuilder;
 use Illuminate\Support\Str;
+use App\Models\FiscalLog;
 
 class XmlController extends Controller
 {
     public function fiskalizuj($invoiceId)
-    {
-        \Log::info('=== FISKALIZACIJA START ===', [
-            'invoice_id' => $invoiceId
+{
+    \Log::info('=== FISKALIZACIJA START ===', [
+        'invoice_id' => $invoiceId
+    ]);
+
+    $invoice = Invoice::with([
+        'items.product.vatRate',
+        'company',
+        'buyer',
+        'user'
+    ])->findOrFail($invoiceId);
+
+    $dto = $this->mapInvoiceToDTO($invoice);
+
+    $uuid = (string) Str::uuid();
+    $sendDateTime = now()->format(DATE_ATOM);
+
+    $certPath = config('services.tax.cert_path');
+    $password = config('services.tax.cert_password') ?: config('services.tax.key_path');
+
+    $requestXml = null;
+    $responseXml = null;
+    $status = 'ERROR';
+    $errorMessage = null;
+
+    if (!$certPath || !$password) {
+
+        $errorMessage = 'Certifikat i lozinka su obavezni za fiskalizaciju.';
+
+        FiscalLog::create([
+            'invoice_id' => $invoiceId,
+            'request_xml' => null,
+            'response_xml' => null,
+            'status' => 'ERROR',
+            'error_message' => $errorMessage,
         ]);
 
-        $invoice = Invoice::with([
-            'items.product.vatRate',
-            'company',
-            'buyer',
-            'user'
-        ])->findOrFail($invoiceId);
-
-        $dto = $this->mapInvoiceToDTO($invoice);
-
-        $uuid = (string) Str::uuid();
-        $sendDateTime = now()->format(DATE_ATOM);
-
-        $certPath = config('services.tax.cert_path');
-        $password = config('services.tax.cert_password') ?: config('services.tax.key_path');
-
-        if (!$certPath || !$password) {
-            \Log::error('Nedostaje sertifikat ili lozinka');
-            return response()->json([
-                'status' => 500,
-                'body' => 'Certifikat i lozinka su obavezni za fiskalizaciju.'
-            ]);
-        }
-
-        try {
-
-            [$iic, $iicSignature] = $this->generateIICAndSignature(
-                $invoice,
-                $certPath,
-                $password
-            );
-
-            \Log::info('IIC generisan', [
-                'iic' => $iic,
-                'iic_length' => strlen($iic),
-                'iic_signature_length' => strlen($iicSignature),
-            ]);
-
-            $dto->iic = $iic;
-            $dto->iic_signature = $iicSignature;
-
-            $xml = FiscalXmlBuilder::build($dto, $uuid, $sendDateTime);
-
-            \Log::info('XML prije potpisa', [
-                'xml_length' => strlen($xml)
-            ]);
-
-            $xml = $this->signXml($xml, $certPath, $password);
-
-            \Log::info('XML spreman za slanje', [
-                'xml_length' => strlen($xml)
-            ]);
-
-        } catch (\Exception $e) {
-
-            \Log::error('Fiskalizacija greška', [
-                'message' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'status' => 500,
-                'body' => $e->getMessage()
-            ]);
-        }
-
-        $response = $this->sendToTax($xml);
-
-        \Log::info('=== FISKALIZACIJA END ===', [
-            'response_status' => $response['status']
+        return response()->json([
+            'status' => 500,
+            'body' => $errorMessage
         ]);
-
-        return response()->json($response);
     }
 
+    try {
+
+        [$iic, $iicSignature] = $this->generateIICAndSignature(
+            $invoice,
+            $certPath,
+            $password
+        );
+
+        $dto->iic = $iic;
+        $dto->iic_signature = $iicSignature;
+
+        $xml = FiscalXmlBuilder::build($dto, $uuid, $sendDateTime);
+        $requestXml = $xml;
+
+        $xml = $this->signXml($xml, $certPath, $password);
+
+    } catch (\Exception $e) {
+
+        $errorMessage = $e->getMessage();
+
+        FiscalLog::create([
+            'invoice_id' => $invoiceId,
+            'request_xml' => $requestXml,
+            'response_xml' => null,
+            'status' => 'ERROR',
+            'error_message' => $errorMessage,
+        ]);
+
+        return response()->json([
+            'status' => 500,
+            'body' => $errorMessage
+        ]);
+    }
+
+    $response = $this->sendToTax($xml);
+
+    $responseXml = $response['body'] ?? null;
+    $status = $response['status'] == 200 ? 'SUCCESS' : 'ERROR';
+
+    FiscalLog::create([
+        'invoice_id' => $invoiceId,
+        'request_xml' => $requestXml,
+        'response_xml' => $responseXml,
+        'status' => $status,
+        'error_message' => $status === 'ERROR' ? $responseXml : null,
+    ]);
+
+    \Log::info('=== FISKALIZACIJA END ===', [
+        'response_status' => $response['status']
+    ]);
+
+    return response()->json($response);
+}
+    
     protected function generateIICAndSignature($invoice, $certPath, $password)
     {
         $certContent = file_get_contents($certPath);

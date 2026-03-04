@@ -73,7 +73,6 @@ class FiscalXmlBuilder
         $invoiceEl->setAttribute('InvOrdNum', $invoice->orderNumber);
         $invoiceEl->setAttribute('IsIssuerInVAT', $company->is_issuer_in_vat ? 'true' : 'false');
         $invoiceEl->setAttribute('IsReverseCharge', 'false');
-        $invoiceEl->setAttribute('IsSimplifiedInv', 'false');
         $invoiceEl->setAttribute('OperatorCode', $user->operator_code);
         $invoiceEl->setAttribute('SoftCode', $company->software_code);
         $invoiceEl->setAttribute('TCRCode', $company->enu_code);

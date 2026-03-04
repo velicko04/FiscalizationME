@@ -78,4 +78,9 @@ class Invoice extends Model
         return $this->belongsTo(Contract::class, 'contract_id');
     }
 
+    public function fiscalLogs()
+{
+    return $this->hasMany(FiscalLog::class, 'invoice_id');
+}
+
 }
