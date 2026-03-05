@@ -20,10 +20,6 @@ use App\Http\Controllers\XmlController;
 Route::get('/invoice/{id}/xml', [XmlController::class, 'generate'])->name('invoice.xml');
 Route::post('/invoice/{id}/fiskalizuj', [XmlController::class, 'fiskalizuj'])->name('invoice.fiskalizuj');
 
-Route::get('/health', function () {
-    return response('OK', 200);
-});
-
 Route::get('/', function () {
     return view('welcome');
 });

@@ -315,6 +315,8 @@
 </head>
 <body>
     <div class="contracts-container">
+        @include('partials.admin-navbar')
+        
         <div class="page-header">
             <h1>Ugovori</h1>
         </div>
@@ -325,28 +327,29 @@
                     
                     {{-- STATUS TABS --}}
                     <div class="tabs">
-                        
-                        @php $currentStatus = request('status'); @endphp
 
-                        <a href="{{ route('contracts.index', ['status' => null]) }}"
-                           class="filter-tab {{ !$currentStatus ? 'active-tab' : '' }}">
-                            All
-                        </a>
+                    @php $currentStatus = request('status'); @endphp
 
-                        <a href="{{ route('contracts.index', ['status' => 'active']) }}"
-                           class="filter-tab {{ $currentStatus == 'active' ? 'active-tab' : '' }}">
-                            Active
-                        </a>
+                    <a href="{{ route('contracts.index', array_diff_key(request()->query(), ['status' => ''])) }}"
+                    class="filter-tab {{ !$currentStatus ? 'active-tab' : '' }}">
+                        All
+                    </a>
 
-                        <a href="{{ route('contracts.index', ['status' => 'expired']) }}"
-                           class="filter-tab {{ $currentStatus == 'expired' ? 'active-tab' : '' }}">
-                            Expired
-                        </a>
+                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'active'])) }}"
+                    class="filter-tab {{ $currentStatus == 'active' ? 'active-tab' : '' }}">
+                        Active
+                    </a>
 
-                        <a href="{{ route('contracts.index', ['status' => 'paused']) }}"
-                           class="filter-tab {{ $currentStatus == 'paused' ? 'active-tab' : '' }}">
-                            Paused
-                        </a>
+                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'expired'])) }}"
+                    class="filter-tab {{ $currentStatus == 'expired' ? 'active-tab' : '' }}">
+                        Expired
+                    </a>
+
+                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'paused'])) }}"
+                    class="filter-tab {{ $currentStatus == 'paused' ? 'active-tab' : '' }}">
+                        Paused
+                    </a>
+
                     </div>
 
                     {{-- DATE FILTER --}}
@@ -369,11 +372,7 @@
 
                 <div class="right-buttons">
                     <button onclick="window.location='{{ route('contracts.create') }}'">
-                        ✨ Dodaj novi ugovor
-                    </button>
-
-                    <button onclick="window.location='{{ route('invoices.index') }}'">
-                        📄 Prikaži sve račune
+                        Dodaj novi ugovor
                     </button>
                 </div>
             </div>

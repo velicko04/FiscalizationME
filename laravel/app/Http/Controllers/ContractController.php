@@ -25,12 +25,10 @@ class ContractController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('range')) {
-            $query->where('start_date', '>=', now()->subDays($request->range));
-        }
-
         if ($request->filled('from') && $request->filled('to')) {
             $query->whereBetween('start_date', [$request->from, $request->to]);
+        } elseif ($request->filled('range')) {
+            $query->where('start_date', '>=', now()->subDays($request->range));
         }
 
         $contracts = $query->orderBy('start_date', 'desc')->get();

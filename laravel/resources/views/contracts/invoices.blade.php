@@ -264,6 +264,8 @@
 </head>
 <body>
     <div class="invoice-container">
+        @include('partials.admin-navbar')
+        
         <div class="page-header">
             <h1>📄 Računi za ugovor {{ $contract->contract_number }}</h1>
         </div>
@@ -289,12 +291,6 @@
 
                     <button type="submit">🔍 Pretraži</button>
                 </form>
-
-                <div class="back-button">
-                    <a href="{{ route('contracts.index') }}">
-                        <button>⬅ Nazad na ugovore</button>
-                    </a>
-                </div>
             </div>
         </div>
 
@@ -339,7 +335,7 @@
                             </ul>
                         </td>
                         <td>
-                            <button onclick="fiskalizuj({{ $invoice->id }})" style="padding:6px 12px;border-radius:8px;border:none;background:#667eea;color:white;cursor:pointer;">
+                            <button onclick="fiskalizuj({{ $invoice->id }})" style="padding:8px 12px;border-radius:8px;border:none;background:#667eea;color:white;cursor:pointer;">
                                 Fiskalizuj
                             </button>
                         </td>

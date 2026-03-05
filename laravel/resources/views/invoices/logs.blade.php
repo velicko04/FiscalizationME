@@ -192,9 +192,10 @@
 </head>
 <body>
     <div class="logs-container">
+        @include('partials.admin-navbar')
         
         <div class="page-header">
-            <h1>📊 Fiscal Logs</h1>
+            <h1>📊 Logovi</h1>
         </div>
 
         <form method="GET" action="{{ route('invoices.logs') }}" class="filter-card">
@@ -214,7 +215,7 @@
                 Reset
             </a>
         </form>
-
+          
         <div class="results-count">
             Total logs: {{ $logs->count() }}
         </div>

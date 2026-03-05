@@ -219,6 +219,8 @@
 </head>
 <body>
     <div class="invoice-container">
+        @include('partials.admin-navbar')
+        
         <div class="page-header">
             <h1>Računi</h1>
         </div>
@@ -239,12 +241,6 @@
 
                     <button type="submit">🔍 Pretraži</button>
                 </form>
-
-                <div class="back-button">
-                    <a href="{{ route('contracts.index') }}">
-                        <button>⬅ Nazad na ugovore</button>
-                    </a>
-                </div>
             </div>
         </div>
 

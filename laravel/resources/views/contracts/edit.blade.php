@@ -222,6 +222,8 @@
 </head>
 <body>
     <div class="form-container">
+        @include('partials.admin-navbar')
+        
         <div class="page-header">
             <h1>✏️ Edit ugovor {{ $contract->contract_number }}</h1>
         </div>
@@ -296,7 +298,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">💾 Sačuvaj izmjene</button>
+                    <button type="submit" class="btn btn-primary">Sačuvaj izmjene</button>
                     <a href="{{ route('contracts.index') }}">
                         <button type="button" class="btn btn-secondary">⬅ Nazad</button>
                     </a>

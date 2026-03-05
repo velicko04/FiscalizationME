@@ -265,6 +265,8 @@
 </head>
 <body>
     <div class="form-container">
+        @include('partials.admin-navbar')
+        
         <div class="page-header">
             <h1>✨ Novi Ugovor</h1>
         </div>
@@ -362,7 +364,7 @@
 
                 {{-- Submit --}}
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">💾 Sačuvaj ugovor</button>
+                    <button type="submit" class="btn btn-primary">Sačuvaj ugovor</button>
                     <a href="{{ route('contracts.index') }}">
                         <button type="button" class="btn btn-secondary">⬅ Nazad</button>
                     </a>
