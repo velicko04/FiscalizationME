@@ -166,6 +166,7 @@ class XmlController extends Controller
         curl_setopt($ch, CURLOPT_POSTFIELDS, $xml);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: text/xml; charset=utf-8',
+            'SOAPAction: "https://efi.tax.gov.me/fs/schema/RegisterInvoiceRequest"',
             'Content-Length: ' . strlen($xml),
         ]);
 
@@ -257,7 +258,8 @@ class XmlController extends Controller
         $paymentRaw = strtoupper((string) ($invoice->getRawOriginal('payment_method_type') ?? 'CASH'));
         $dto->paymentMethod = match ($paymentRaw) {
             'CARD' => PaymentMethodType::CARD,
-            default => PaymentMethodType::CASH,
+            'ACCOUNT' => PaymentMethodType::ACCOUNT,
+            default => PaymentMethodType::BANKNOTE,
         };
 
         $dto->issued_at = $invoice->issued_at;
