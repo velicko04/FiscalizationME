@@ -242,7 +242,7 @@ class XmlController extends Controller
     {
         $dto = new CreateInvoiceRequest();
 
-        $invoiceTypeRaw = strtoupper((string) ($invoice->getRawOriginal('invoice_type') ?? 'INVOICE'));
+        $invoiceTypeRaw = strtoupper((string) ($invoice->getRawOriginal('invoiceType') ?? 'INVOICE'));
         $dto->invoiceType = match ($invoiceTypeRaw) {
             'CORRECTIVE' => \App\Enums\InvoiceType::CORRECTIVE,
             default => \App\Enums\InvoiceType::REGULAR,
