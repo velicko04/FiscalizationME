@@ -245,12 +245,12 @@ class XmlController extends Controller
         $invoiceTypeRaw = strtoupper((string) ($invoice->getRawOriginal('invoice_type') ?? 'INVOICE'));
         $dto->invoiceType = match ($invoiceTypeRaw) {
             'CORRECTIVE' => \App\Enums\InvoiceType::CORRECTIVE,
-            default => \App\Enums\InvoiceType::INVOICE,
+            default => \App\Enums\InvoiceType::REGULAR,
         };
 
         $typeOfInvoiceRaw = strtoupper((string) ($invoice->getRawOriginal('type_of_invoice') ?? 'NONCASH'));
         $dto->typeOfInvoice = match ($typeOfInvoiceRaw) {
-            'SALE' => TypeOfInvoice::SALE,
+            'CASH' => TypeOfInvoice::CASH,
             default => TypeOfInvoice::NONCASH,
         };
 
@@ -298,7 +298,7 @@ class XmlController extends Controller
 
             $qty = (float) ($item->quantity ?? 0);
             $unitPrice = (float) ($item->unit_price ?? 0);
-            $vatRate = (float) ($item->vatRate->rate ?? $item->product->vatRate->rate ?? 0);
+            $vatRate = (float) ($item->vatRate->percentage ?? $item->product->vatRate->percentage ?? 0);
 
             $row->quantity = $qty;
             $row->unitPrice = $unitPrice;
