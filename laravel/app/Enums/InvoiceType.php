@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum InvoiceType: string
 {
-    case INVOICE = 'INVOICE';
+    case REGULAR = 'REGULAR';
     case CORRECTIVE = 'CORRECTIVE';
 }
 
