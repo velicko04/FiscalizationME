@@ -19,100 +19,111 @@ class XmlController extends Controller
 {
     public function fiskalizuj($invoiceId)
 {
-    \Log::info('=== FISKALIZACIJA START ===', [
-        'invoice_id' => $invoiceId
-    ]);
-
-    $invoice = Invoice::with([
-        'items.product.vatRate',
-        'company',
-        'buyer',
-        'user'
-    ])->findOrFail($invoiceId);
-
-    $dto = $this->mapInvoiceToDTO($invoice);
-
-    $uuid = (string) Str::uuid();
-    $sendDateTime = now()->format(DATE_ATOM);
-
-    $certPath = config('services.tax.cert_path');
-    $password = config('services.tax.cert_password') ?: config('services.tax.key_path');
-
-    $requestXml = null;
-    $responseXml = null;
-    $status = 'ERROR';
-    $errorMessage = null;
-
-    if (!$certPath || !$password) {
-
-        $errorMessage = 'Certifikat i lozinka su obavezni za fiskalizaciju.';
-
-        FiscalLog::create([
-            'invoice_id' => $invoiceId,
-            'request_xml' => null,
-            'response_xml' => null,
-            'status' => 'ERROR',
-            'error_message' => $errorMessage,
-        ]);
-
-        return response()->json([
-            'status' => 500,
-            'body' => $errorMessage
-        ]);
-    }
-
     try {
 
-        [$iic, $iicSignature] = $this->generateIICAndSignature(
-            $invoice,
-            $certPath,
-            $password
-        );
+        \Log::info('=== FISKALIZACIJA START ===', [
+            'invoice_id' => $invoiceId
+        ]);
 
-        $dto->iic = $iic;
-        $dto->iic_signature = $iicSignature;
+        $invoice = Invoice::with([
+            'items.product.vatRate',
+            'company',
+            'buyer',
+            'user'
+        ])->findOrFail($invoiceId);
 
-        $xml = FiscalXmlBuilder::build($dto, $uuid, $sendDateTime);
-        $requestXml = $xml;
+        $dto = $this->mapInvoiceToDTO($invoice);
 
-        $xml = $this->signXml($xml, $certPath, $password);
+        $uuid = (string) Str::uuid();
+        $sendDateTime = now()->format(DATE_ATOM);
 
-    } catch (\Exception $e) {
+        $certPath = config('services.tax.cert_path');
+        $password = config('services.tax.cert_password');
 
-        $errorMessage = $e->getMessage();
+        $requestXml = null;
+        $responseXml = null;
+        $status = 'ERROR';
+        $errorMessage = null;
+
+        if (!$certPath || !$password) {
+
+            $errorMessage = 'Certifikat i lozinka su obavezni za fiskalizaciju.';
+
+            FiscalLog::create([
+                'invoice_id' => $invoiceId,
+                'request_xml' => null,
+                'response_xml' => null,
+                'status' => 'ERROR',
+                'error_message' => $errorMessage,
+            ]);
+
+            return response()->json([
+                'status' => 500,
+                'body' => $errorMessage
+            ]);
+        }
+
+        try {
+
+            [$iic, $iicSignature] = $this->generateIICAndSignature(
+                $invoice,
+                $certPath,
+                $password
+            );
+
+            $dto->iic = $iic;
+            $dto->iic_signature = $iicSignature;
+
+            $xml = FiscalXmlBuilder::build($dto, $uuid, $sendDateTime);
+            $requestXml = $xml;
+
+            $xml = $this->signXml($xml, $certPath, $password);
+
+        } catch (\Exception $e) {
+
+            $errorMessage = $e->getMessage();
+
+            FiscalLog::create([
+                'invoice_id' => $invoiceId,
+                'request_xml' => $requestXml,
+                'response_xml' => null,
+                'status' => 'ERROR',
+                'error_message' => $errorMessage,
+            ]);
+
+            return response()->json([
+                'status' => 500,
+                'body' => $errorMessage
+            ]);
+        }
+
+        $response = $this->sendToTax($xml);
+
+        $responseXml = $response['body'] ?? null;
+        $status = $response['status'] == 200 ? 'SUCCESS' : 'ERROR';
 
         FiscalLog::create([
             'invoice_id' => $invoiceId,
             'request_xml' => $requestXml,
-            'response_xml' => null,
-            'status' => 'ERROR',
-            'error_message' => $errorMessage,
+            'response_xml' => $responseXml,
+            'status' => $status,
+            'error_message' => $status === 'ERROR' ? $responseXml : null,
         ]);
+
+        \Log::info('=== FISKALIZACIJA END ===', [
+            'response_status' => $response['status']
+        ]);
+
+        return response()->json($response);
+
+    } catch (\Throwable $e) {
 
         return response()->json([
             'status' => 500,
-            'body' => $errorMessage
+            'body' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
         ]);
     }
-
-    $response = $this->sendToTax($xml);
-
-    $responseXml = $response['body'] ?? null;
-    $status = $response['status'] == 200 ? 'SUCCESS' : 'ERROR';
-
-    FiscalLog::create([
-        'invoice_id' => $invoiceId,
-        'request_xml' => $requestXml,
-        'response_xml' => $responseXml,
-        'status' => $status,
-        'error_message' => $status === 'ERROR' ? $responseXml : null,
-    ]);
-
-    \Log::info('=== FISKALIZACIJA END ===', [
-        'response_status' => $response['status']
-    ]);
-
-    return response()->json($response);
 }
     
     protected function generateIICAndSignature($invoice, $certPath, $password)
@@ -200,7 +211,7 @@ class XmlController extends Controller
         ];
     }
 
-    protected function signXml(string $xml, string $certPath, string $password): string
+   protected function signXml(string $xml, string $certPath, string $password): string
 {
     $certContent = file_get_contents($certPath);
 
@@ -215,12 +226,17 @@ class XmlController extends Controller
     $dom->loadXML($xml);
 
     $objDSig = new XMLSecurityDSig();
-    $objDSig->setCanonicalMethod(XMLSecurityDSig::C14N);
+
+    $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 
     $objDSig->addReference(
-        $dom,
+        $dom->documentElement,
         XMLSecurityDSig::SHA256,
-        ['http://www.w3.org/2000/09/xmldsig#enveloped-signature']
+        [
+            'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+            'http://www.w3.org/2001/10/xml-exc-c14n#'
+        ],
+        ['uri' => '#Request']
     );
 
     $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type'=>'private']);
@@ -228,7 +244,7 @@ class XmlController extends Controller
 
     $objDSig->sign($objKey);
 
-    $objDSig->add509Cert($publicCert);
+    $objDSig->add509Cert($publicCert, true, false, ['subjectName' => true]);
 
     $xpath = new \DOMXPath($dom);
     $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
