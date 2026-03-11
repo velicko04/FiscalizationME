@@ -12,6 +12,8 @@ use App\Enums\PaymentMethodType;
 use App\Services\FiscalXmlBuilder;
 use Illuminate\Support\Str;
 use App\Models\FiscalLog;
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
 
 class XmlController extends Controller
 {
@@ -199,52 +201,46 @@ class XmlController extends Controller
     }
 
     protected function signXml(string $xml, string $certPath, string $password): string
-    {
-        $certContent = file_get_contents($certPath);
+{
+    $certContent = file_get_contents($certPath);
 
-        if (!openssl_pkcs12_read($certContent, $certs, $password)) {
-            throw new \Exception("Ne mogu da učitam sertifikat.");
-        }
-
-        $privateKey = $certs['pkey'];
-
-        $dom = new \DOMDocument();
-        $dom->loadXML($xml);
-
-        $canonicalXml = $dom->C14N();
-
-        openssl_sign(
-            $canonicalXml,
-            $signatureValue,
-            $privateKey,
-            OPENSSL_ALGO_SHA256
-        );
-
-        $signatureB64 = base64_encode($signatureValue);
-
-        $signatureEl = $dom->createElementNS(
-            'http://www.w3.org/2000/09/xmldsig#',
-            'Signature'
-        );
-
-        $sigValueEl = $dom->createElementNS(
-            'http://www.w3.org/2000/09/xmldsig#',
-            'SignatureValue',
-            $signatureB64
-        );
-
-        $signatureEl->appendChild($sigValueEl);
-        $xpath = new \DOMXPath($dom);
-        $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
-
-        $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
-
-        if ($nodes->length > 0) {
-            $nodes->item(0)->appendChild($signatureEl);
-        }
-
-        return $dom->saveXML();
+    if (!openssl_pkcs12_read($certContent, $certs, $password)) {
+        throw new \Exception("Ne mogu da učitam sertifikat.");
     }
+
+    $privateKey = $certs['pkey'];
+    $publicCert = $certs['cert'];
+
+    $dom = new \DOMDocument();
+    $dom->loadXML($xml);
+
+    $objDSig = new XMLSecurityDSig();
+    $objDSig->setCanonicalMethod(XMLSecurityDSig::C14N);
+
+    $objDSig->addReference(
+        $dom,
+        XMLSecurityDSig::SHA256,
+        ['http://www.w3.org/2000/09/xmldsig#enveloped-signature']
+    );
+
+    $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type'=>'private']);
+    $objKey->loadKey($privateKey, false);
+
+    $objDSig->sign($objKey);
+
+    $objDSig->add509Cert($publicCert);
+
+    $xpath = new \DOMXPath($dom);
+    $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
+
+    $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
+
+    if ($nodes->length > 0) {
+        $objDSig->appendSignature($nodes->item(0));
+    }
+
+    return $dom->saveXML();
+}
 
     protected function mapInvoiceToDTO($invoice)
     {

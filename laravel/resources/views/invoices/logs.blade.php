@@ -195,7 +195,7 @@
         @include('partials.admin-navbar')
         
         <div class="page-header">
-            <h1>Logovi</h1>
+            <h1>📊Logovi</h1>
         </div>
 
         <form method="GET" action="{{ route('invoices.logs') }}" class="filter-card">
@@ -203,7 +203,7 @@
                 <label>Invoice Number</label>
                 <input type="text"
                        name="invoice_number"
-                       placeholder="e.g. INV-001"
+                       placeholder="e.g. 1/2026/pg001pg001"
                        value="{{ request('invoice_number') }}">
             </div>
 
