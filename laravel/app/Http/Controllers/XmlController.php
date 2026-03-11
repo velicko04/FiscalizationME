@@ -259,6 +259,12 @@ class XmlController extends Controller
         $el->removeAttribute('Id');
     }
 
+    
+    $nodes2 = $xpath->query('//ns:RegisterInvoiceRequest');
+    if ($nodes2->length > 0) {
+        $nodes2->item(0)->setAttribute('Id', 'Request');
+    }
+
     return $dom->saveXML();
 }
 

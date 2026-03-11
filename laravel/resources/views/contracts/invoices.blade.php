@@ -267,7 +267,7 @@
         @include('partials.admin-navbar')
         
         <div class="page-header">
-            <h1>Računi za ugovor {{ $contract->contract_number }}</h1>
+            <h1>📄 Računi za ugovor {{ $contract->contract_number }}</h1>
         </div>
 
         <div class="contract-info-card">
