@@ -35,7 +35,9 @@ class XmlController extends Controller
         $dto = $this->mapInvoiceToDTO($invoice);
 
         $uuid = (string) Str::uuid();
-        $sendDateTime = now()->format(DATE_ATOM);
+        $dt = new \DateTime();
+        $dt->setTimezone(new \DateTimeZone('+01:00'));
+        $sendDateTime = $dt->format('c');
 
         $certPath = config('services.tax.cert_path');
         $password = config('services.tax.cert_password');
