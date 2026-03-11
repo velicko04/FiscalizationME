@@ -246,8 +246,13 @@ class XmlController extends Controller
         $invoiceTypeRaw = strtoupper((string) ($invoice->getRawOriginal('invoiceType') ?? 'INVOICE'));
         $dto->invoiceType = match ($invoiceTypeRaw) {
             'CORRECTIVE' => \App\Enums\InvoiceType::CORRECTIVE,
-            default => \App\Enums\InvoiceType::REGULAR,
+            'SUMMARY' => \App\Enums\InvoiceType::SUMMARY,
+            'PERIODICAL' => \App\Enums\InvoiceType::PERIODICAL,
+            'ADVANCE' => \App\Enums\InvoiceType::ADVANCE,
+            'CREDIT_NOTE' => \App\Enums\InvoiceType::CREDIT_NOTE,
+            default => \App\Enums\InvoiceType::INVOICE,
         };
+
 
         $typeOfInvoiceRaw = strtoupper((string) ($invoice->getRawOriginal('type_of_invoice') ?? 'NONCASH'));
         $dto->typeOfInvoice = match ($typeOfInvoiceRaw) {
@@ -259,6 +264,9 @@ class XmlController extends Controller
         $dto->paymentMethod = match ($paymentRaw) {
             'CARD' => PaymentMethodType::CARD,
             'ACCOUNT' => PaymentMethodType::ACCOUNT,
+            'COMPENSATION' => PaymentMethodType::COMPENSATION,
+            'VOUCHER' => PaymentMethodType::VOUCHER,
+            'OTHER' => PaymentMethodType::OTHER,
             default => PaymentMethodType::BANKNOTE,
         };
 
