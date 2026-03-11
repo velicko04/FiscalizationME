@@ -196,17 +196,6 @@ class FiscalXmlBuilder
 
         $invoiceEl->appendChild($sameTaxes);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Signature placeholder 
-        |--------------------------------------------------------------------------
-        */
-        $signature = $dom->createElementNS(
-            'http://www.w3.org/2000/09/xmldsig#',
-            'ns2:Signature'
-        );
-        $root->appendChild($signature);
-
         return $dom->saveXML();
     }
 }
