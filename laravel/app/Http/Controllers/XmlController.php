@@ -211,7 +211,7 @@ class XmlController extends Controller
         ];
     }
 
-   protected function signXml(string $xml, string $certPath, string $password): string
+  protected function signXml(string $xml, string $certPath, string $password): string
 {
     $certContent = file_get_contents($certPath);
 
@@ -226,33 +226,37 @@ class XmlController extends Controller
     $dom->loadXML($xml);
 
     $objDSig = new XMLSecurityDSig();
-
     $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 
     $objDSig->addReference(
-    $dom->documentElement,
-    XMLSecurityDSig::SHA256,
-    [
-        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-        'http://www.w3.org/2001/10/xml-exc-c14n#'
-    ],
-    ['uri' => '']  
-);
+        $dom->documentElement,
+        XMLSecurityDSig::SHA256,
+        [
+            'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+            'http://www.w3.org/2001/10/xml-exc-c14n#'
+        ],
+        ['uri' => '']
+    );
 
-    $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type'=>'private']);
+    $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
     $objKey->loadKey($privateKey, false);
 
     $objDSig->sign($objKey);
-
-    $objDSig->add509Cert($publicCert, true, false, ['subjectName' => true]);
+    $objDSig->add509Cert($publicCert, true, false);
 
     $xpath = new \DOMXPath($dom);
     $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
-
     $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
 
     if ($nodes->length > 0) {
         $objDSig->appendSignature($nodes->item(0));
+    }
+
+    
+    $xpath2 = new \DOMXPath($dom);
+    $allElements = $xpath2->query('//*[@Id]');
+    foreach ($allElements as $el) {
+        $el->removeAttribute('Id');
     }
 
     return $dom->saveXML();
