@@ -236,7 +236,7 @@ class XmlController extends Controller
         'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
         'http://www.w3.org/2001/10/xml-exc-c14n#'
     ],
-    ['uri' => '#Request']  // ovo ostaje isto
+    ['uri' => '']  
 );
 
     $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type'=>'private']);

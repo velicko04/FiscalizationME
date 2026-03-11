@@ -35,18 +35,13 @@ class FiscalXmlBuilder
         |--------------------------------------------------------------------------
         */
         $root = $dom->createElementNS(
-    'https://efi.tax.gov.me/fs/schema',
-    'RegisterInvoiceRequest'
+        'https://efi.tax.gov.me/fs/schema',
+        'RegisterInvoiceRequest'
         );
 
         $root->setAttribute('xmlns:ns2', 'http://www.w3.org/2000/09/xmldsig#');
-        $root->setAttribute('xmlns:wsu', 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd');
-        $root->setAttributeNS(
-            'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
-            'wsu:Id',
-            'Request'
-        );
-$root->setAttribute('Version', '1');
+        $root->setAttribute('Version', '1');
+
         $soapBody->appendChild($root);
 
         /*
