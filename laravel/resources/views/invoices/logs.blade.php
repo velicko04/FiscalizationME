@@ -195,7 +195,7 @@
         @include('partials.admin-navbar')
         
         <div class="page-header">
-            <h1>📊 Logovi</h1>
+            <h1>Logovi</h1>
         </div>
 
         <form method="GET" action="{{ route('invoices.logs') }}" class="filter-card">

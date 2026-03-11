@@ -234,7 +234,14 @@ class XmlController extends Controller
         );
 
         $signatureEl->appendChild($sigValueEl);
-        $dom->documentElement->appendChild($signatureEl);
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
+
+        $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
+
+        if ($nodes->length > 0) {
+            $nodes->item(0)->appendChild($signatureEl);
+        }
 
         return $dom->saveXML();
     }
