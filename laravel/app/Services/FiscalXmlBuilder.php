@@ -79,8 +79,8 @@ class FiscalXmlBuilder
         $invoiceEl->setAttribute('TotPrice', number_format($invoice->total_price_to_pay, 2, '.', ''));
         $invoiceEl->setAttribute('TotPriceWoVAT', number_format($invoice->total_price_without_vat, 2, '.', ''));
         $invoiceEl->setAttribute('TotVATAmt', number_format($invoice->total_vat_amount, 2, '.', ''));
-        $invoiceEl->setAttribute('TypeOfInv', strtoupper($invoice->invoiceType));
-        $invoiceEl->setAttribute('InvType', strtoupper($invoice->typeOfInvoice));
+        $invoiceEl->setAttribute('TypeOfInv', strtoupper($invoice->typeOfInvoice->value));
+        $invoiceEl->setAttribute('InvType', strtoupper($invoice->invoiceType->value));
 
         $root->appendChild($invoiceEl);
 
