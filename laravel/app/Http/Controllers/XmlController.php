@@ -237,7 +237,7 @@ class XmlController extends Controller
             'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
             'http://www.w3.org/2001/10/xml-exc-c14n#'
         ],
-        ['uri' => '']
+        ['uri' => '#Request']
     );
 
     $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
@@ -252,19 +252,6 @@ class XmlController extends Controller
 
     if ($nodes->length > 0) {
         $objDSig->appendSignature($nodes->item(0));
-    }
-
-    
-    $xpath2 = new \DOMXPath($dom);
-    $allElements = $xpath2->query('//*[@Id]');
-    foreach ($allElements as $el) {
-        $el->removeAttribute('Id');
-    }
-
-    
-    $nodes2 = $xpath->query('//ns:RegisterInvoiceRequest');
-    if ($nodes2->length > 0) {
-        $nodes2->item(0)->setAttribute('Id', 'Request');
     }
 
     return $dom->saveXML();
