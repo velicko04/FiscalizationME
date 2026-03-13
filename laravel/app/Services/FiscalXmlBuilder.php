@@ -67,8 +67,6 @@ class FiscalXmlBuilder
         $invoiceEl = $dom->createElement('Invoice');
 
         $invoiceEl->setAttribute('BusinUnitCode', $company->business_unit_code);
-        $dt = new \DateTime($invoice->issued_at->format('Y-m-d H:i:s'));
-        $dt->setTimezone(new \DateTimeZone('+01:00'));
         $invoiceEl->setAttribute('IssueDateTime', $sendDateTime);
         $invoiceEl->setAttribute('IIC', $invoice->iic ?? '');
         $invoiceEl->setAttribute('IICSignature', $invoice->iic_signature ?? '');
@@ -198,6 +196,14 @@ class FiscalXmlBuilder
         }
 
         $invoiceEl->appendChild($sameTaxes);
+
+            \Log::info('Fiscal XML TCR podaci', [
+        'TCRCode' => $company->enu_code,
+        'SoftCode' => $company->software_code,
+        'BusinUnitCode' => $company->business_unit_code,
+        'OperatorCode' => $user->operator_code,
+        'IDNum' => $company->tax_id_number,
+    ]);
 
         return $dom->saveXML();
     }
