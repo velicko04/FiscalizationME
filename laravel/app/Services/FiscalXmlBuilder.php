@@ -40,6 +40,7 @@ class FiscalXmlBuilder
         );
 
         $root->setAttribute('xmlns:ns2', 'http://www.w3.org/2000/09/xmldsig#');
+        $root->setAttribute('Id', 'Request');
         $root->setAttribute('Version', '1');
 
 
