@@ -3,73 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Ugovor</title>
+    <title>Edit Contract - FiscalizationME</title>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .form-container {
+        .page-container {
             max-width: 1000px;
             margin: 0 auto;
+            padding: 32px;
         }
         
         .page-header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
         
-        .page-header h1 {
-            font-size: 36px;
+        .page-title {
+            font-size: 28px;
             font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
         }
         
         .form-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 48px;
-            animation: slideUp 0.5s ease;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 32px;
         }
         
         .form-section {
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
         
         .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 2px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
+            gap: 20px;
         }
         
         .form-group {
@@ -78,64 +67,54 @@
         }
         
         label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         input, select {
-            height: 48px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 15px;
-            background: #f9fafb;
-            color: #1f2937;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+            background: white;
+            color: #111827;
+            transition: all 0.2s;
         }
         
         input:hover, select:hover {
             border-color: #d1d5db;
-            background: white;
         }
         
         input:focus, select:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
         
         .product-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 16px;
-            margin-bottom: 16px;
-            padding: 20px;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 16px;
             background: #f9fafb;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
             align-items: end;
-            transition: all 0.3s ease;
-        }
-        
-        .product-row:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.15);
         }
         
         .btn {
-            height: 48px;
-            padding: 0 28px;
-            border-radius: 12px;
-            border: none;
-            font-size: 15px;
-            font-weight: 600;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            transition: all 0.2s;
+            border: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -143,89 +122,87 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6366f1;
             color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+            background: #4f46e5;
         }
         
         .btn-secondary {
             background: white;
             color: #374151;
-            border: 2px solid #e5e7eb;
+            border: 1px solid #e5e7eb;
+            text-decoration: none;
         }
         
         .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
         }
         
-        .btn-add {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        .btn-success {
+            background: #10b981;
             color: white;
             width: 100%;
-            margin-top: 16px;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+            margin-top: 12px;
         }
         
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(16,185,129,0.4);
+        .btn-success:hover {
+            background: #059669;
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: #ef4444;
             color: white;
-            width: 48px;
+            width: 36px;
+            height: 36px;
             padding: 0;
-            box-shadow: 0 2px 8px rgba(239,68,68,0.3);
         }
         
         .btn-danger:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+            background: #dc2626;
         }
         
         .form-actions {
             display: flex;
-            gap: 16px;
-            margin-top: 48px;
-            padding-top: 32px;
-            border-top: 2px solid #f3f4f6;
+            gap: 12px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
         }
         
-        .form-actions .btn {
+        .form-actions .btn-primary {
             flex: 1;
-            height: 56px;
-            font-size: 16px;
-        }
-        
-        .form-actions a {
-            text-decoration: none;
-            flex: 1;
+            height: 40px;
         }
         
         @media (max-width: 768px) {
-            body { padding: 20px 16px; }
-            .form-card { padding: 28px 20px; }
-            .page-header h1 { font-size: 28px; }
-            .form-grid { grid-template-columns: 1fr; }
-            .product-row { grid-template-columns: 1fr; padding: 16px; }
-            .form-actions { flex-direction: column; }
+            .page-container {
+                padding: 16px;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .product-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>✏️ Edit ugovor {{ $contract->contract_number }}</h1>
+            <h1 class="page-title">Edit Contract {{ $contract->contract_number }}</h1>
+            <p class="page-subtitle">Update contract details and products</p>
         </div>
 
         <div class="form-card">
@@ -234,10 +211,10 @@
                 @method('PUT')
 
                 <div class="form-section">
-                    <h3 class="section-title">Osnovne informacije</h3>
+                    <h3 class="section-title">Basic Information</h3>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Status:</label>
+                            <label>Status</label>
                             <select name="status">
                                 <option value="active" {{ $contract->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="expired" {{ $contract->status == 'expired' ? 'selected' : '' }}>Expired</option>
@@ -246,7 +223,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Billing frequency:</label>
+                            <label>Billing Frequency</label>
                             <select name="billing_frequency">
                                 <option value="monthly" {{ $contract->billing_frequency == 'monthly' ? 'selected' : '' }}>Monthly</option>
                                 <option value="quarterly" {{ $contract->billing_frequency == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
@@ -255,24 +232,24 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Start date:</label>
+                            <label>Start Date</label>
                             <input type="date" name="start_date" value="{{ $contract->start_date }}">
                         </div>
 
                         <div class="form-group">
-                            <label>End date:</label>
+                            <label>End Date</label>
                             <input type="date" name="end_date" value="{{ $contract->end_date }}">
                         </div>
 
                         <div class="form-group">
-                            <label>Issue day:</label>
+                            <label>Issue Day</label>
                             <input type="number" name="issue_day" value="{{ $contract->issue_day }}" min="1" max="31">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <h3 class="section-title">Proizvodi</h3>
+                    <h3 class="section-title">Products</h3>
 
                     <div id="products-wrapper">
                         @foreach($contract->items as $item)
@@ -294,13 +271,13 @@
                         @endforeach
                     </div>
 
-                    <button type="button" id="add-product-btn" class="btn btn-add">+ Dodaj proizvod</button>
+                    <button type="button" id="add-product-btn" class="btn btn-success">+ Add Product</button>
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Sačuvaj izmjene</button>
-                    <a href="{{ route('contracts.index') }}">
-                        <button type="button" class="btn btn-secondary">⬅ Nazad</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ route('contracts.index') }}" class="btn btn-secondary">
+                        Cancel
                     </a>
                 </div>
             </form>

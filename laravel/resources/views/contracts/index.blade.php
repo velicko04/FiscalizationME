@@ -3,193 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ugovori</title>
+    <title>Contracts - FiscalizationME</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .contracts-container {
-            max-width: 1600px;
+        .page-container {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 32px;
         }
         
         .page-header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
         
-        .page-header h1 {
-            font-size: 42px;
+        .page-title {
+            font-size: 28px;
             font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #111827;
+            margin-bottom: 8px;
         }
         
-        .controls-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 32px;
-            margin-bottom: 32px;
-            animation: slideUp 0.5s ease;
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
         }
         
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .filter-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-            flex-wrap: wrap;
-        }
-        
-        .left-filters {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-            flex-wrap: wrap;
-            flex: 1;
+        .tabs-container {
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 24px;
         }
         
         .tabs {
             display: flex;
-            gap: 8px;
-            background: #f3f4f6;
-            padding: 6px;
-            border-radius: 14px;
+            gap: 32px;
         }
         
-        .filter-tab {
-            padding: 10px 24px;
-            border-radius: 10px;
-            text-decoration: none;
-            background: transparent;
+        .tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
             color: #6b7280;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
         }
         
-        .filter-tab:hover {
-            color: #374151;
-            background: #e5e7eb;
+        .tab:hover {
+            color: #111827;
         }
         
-        .active-tab {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        .tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
         }
         
-        .date-filter {
+        .controls-bar {
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 24px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .filters-left {
+            display: flex;
             gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
         }
         
-        .date-filter select,
-        .date-filter input {
-            height: 44px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 14px;
-            background: #f9fafb;
-            color: #374151;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-        
-        .date-filter select:hover,
-        .date-filter input:hover {
-            border-color: #d1d5db;
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
             background: white;
-        }
-        
-        .date-filter select:focus,
-        .date-filter input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
-        }
-        
-        .date-filter button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .date-filter button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+        .filter-chip:hover {
+            border-color: #d1d5db;
+            background: #f9fafb;
         }
         
-        .right-buttons {
+        .filter-chip.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .filter-chip .count {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .filter-chip.active .count {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .date-filters {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .date-filters select,
+        .date-filters input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
+            color: #374151;
+        }
+        
+        .date-filters select:focus,
+        .date-filters input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+        
+        .actions-right {
             display: flex;
             gap: 12px;
         }
         
-        .right-buttons button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: none;
-            font-size: 14px;
-            font-weight: 600;
+        .btn {
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            white-space: nowrap;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .right-buttons button:first-child {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        .btn-primary {
+            background: #6366f1;
             color: white;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
         }
         
-        .right-buttons button:first-child:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(16,185,129,0.4);
+        .btn-primary:hover {
+            background: #4f46e5;
         }
         
-        .right-buttons button:last-child {
+        .btn-secondary {
             background: white;
             color: #374151;
-            border: 2px solid #e5e7eb;
+            border: 1px solid #e5e7eb;
         }
         
-        .right-buttons button:last-child:hover {
+        .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
         }
         
         .table-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
-            animation: slideUp 0.6s ease;
         }
         
         table {
@@ -198,26 +194,27 @@
         }
         
         thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         thead th {
-            padding: 20px 24px;
+            padding: 12px 16px;
             text-align: left;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
         
         tbody tr {
             border-bottom: 1px solid #f3f4f6;
-            transition: all 0.3s ease;
+            transition: background 0.2s;
         }
         
         tbody tr:hover {
-            background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            background: #f9fafb;
         }
         
         tbody tr:last-child {
@@ -225,61 +222,23 @@
         }
         
         tbody td {
-            padding: 20px 24px;
+            padding: 16px;
             font-size: 14px;
             color: #374151;
             vertical-align: top;
         }
         
         tbody td:first-child {
-            font-weight: 700;
-            color: #1f2937;
-            font-size: 15px;
-        }
-        
-        .product-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .product-list li {
-            padding: 6px 0;
-            font-size: 13px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-        
-        .product-list li:first-child {
-            padding-top: 0;
-        }
-        
-        .product-list li:last-child {
-            padding-bottom: 0;
-        }
-        
-        .action-link {
-            color: #667eea;
-            text-decoration: none;
             font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .action-link:hover {
-            color: #764ba2;
-            transform: translateX(4px);
+            color: #111827;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
+            padding: 4px 12px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
+            font-weight: 600;
         }
         
         .status-active {
@@ -297,101 +256,135 @@
             color: #92400e;
         }
         
+        .product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .product-list li {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .action-link {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-link:hover {
+            text-decoration: underline;
+        }
+        
+        
         @media (max-width: 1024px) {
-            body { padding: 20px 16px; }
-            .page-header h1 { font-size: 32px; }
-            .controls-card { padding: 24px; }
-            .filter-container { flex-direction: column; align-items: stretch; }
-            .left-filters { flex-direction: column; align-items: stretch; }
-            .tabs { flex-wrap: wrap; }
-            .date-filter { flex-wrap: wrap; }
-            .date-filter select, .date-filter input, .date-filter button { flex: 1; min-width: 120px; }
-            .right-buttons { flex-direction: column; }
-            .right-buttons button { width: 100%; }
-            .table-card { overflow-x: auto; }
-            table { min-width: 1200px; }
+            .page-container {
+                padding: 16px;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filters-left,
+            .actions-right {
+                width: 100%;
+            }
+            
+            .table-card {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 1000px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="contracts-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>Ugovori</h1>
+            <h1 class="page-title">Contracts</h1>
+            <p class="page-subtitle">Manage all your contracts and agreements</p>
         </div>
-
-        <div class="controls-card">
-            <div class="filter-container">
-                <div class="left-filters">
-                    
-                    {{-- STATUS TABS --}}
-                    <div class="tabs">
-
-                    @php $currentStatus = request('status'); @endphp
-
-                    <a href="{{ route('contracts.index', array_diff_key(request()->query(), ['status' => ''])) }}"
-                    class="filter-tab {{ !$currentStatus ? 'active-tab' : '' }}">
-                        All
-                    </a>
-
-                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'active'])) }}"
-                    class="filter-tab {{ $currentStatus == 'active' ? 'active-tab' : '' }}">
-                        Active
-                    </a>
-
-                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'expired'])) }}"
-                    class="filter-tab {{ $currentStatus == 'expired' ? 'active-tab' : '' }}">
-                        Expired
-                    </a>
-
-                    <a href="{{ route('contracts.index', array_merge(request()->query(), ['status' => 'paused'])) }}"
-                    class="filter-tab {{ $currentStatus == 'paused' ? 'active-tab' : '' }}">
-                        Paused
-                    </a>
-
-                    </div>
-
-                    {{-- DATE FILTER --}}
-                    <form method="GET" action="{{ route('contracts.index') }}" class="date-filter">
-                        <input type="hidden" name="status" value="{{ request('status') }}">
-
-                        <select name="range">
-                            <option value="">All time</option>
-                            <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
-                            <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
-                            <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
-                        </select>
-
-                        <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
-                        <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
-
-                        <button type="submit">🔍 Pretraži</button>
-                    </form>
-                </div>
-
-                <div class="right-buttons">
-                    <button onclick="window.location='{{ route('contracts.create') }}'">
-                        Dodaj novi ugovor
-                    </button>
-                </div>
+        
+        <div class="tabs-container">
+            <div class="tabs">
+                <a href="#" class="tab active">All Contracts</a>
             </div>
         </div>
-
+        
+        <div class="controls-bar">
+            <div class="filters-left">
+                @php 
+                    $currentStatus = request('status');
+                    $allCount = $contracts->count();
+                @endphp
+                
+                <a href="{{ route('contracts.index', ['status' => null]) }}" 
+                   class="filter-chip {{ !$currentStatus ? 'active' : '' }}">
+                    All <span class="count">{{ $allCount }}</span>
+                </a>
+                
+                <a href="{{ route('contracts.index', ['status' => 'active']) }}" 
+                   class="filter-chip {{ $currentStatus == 'active' ? 'active' : '' }}">
+                    Active
+                </a>
+                
+                <a href="{{ route('contracts.index', ['status' => 'expired']) }}" 
+                   class="filter-chip {{ $currentStatus == 'expired' ? 'active' : '' }}">
+                    Expired
+                </a>
+                
+                <a href="{{ route('contracts.index', ['status' => 'paused']) }}" 
+                   class="filter-chip {{ $currentStatus == 'paused' ? 'active' : '' }}">
+                    Paused
+                </a>
+                
+                <form method="GET" action="{{ route('contracts.index') }}" class="date-filters">
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                    
+                    <select name="range">
+                        <option value="">All time</option>
+                        <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
+                        <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
+                        <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
+                    </select>
+                    
+                    <input type="date" name="from" value="{{ request('from') }}">
+                    <input type="date" name="to" value="{{ request('to') }}">
+                    
+                    <button type="submit" class="btn btn-secondary">Filter</button>
+                </form>
+            </div>
+            
+            <div class="actions-right">
+                <button onclick="window.location='{{ route('contracts.create') }}'" class="btn btn-primary">
+                    + Add Contract
+                </button>
+            </div>
+        </div>
+        
         <div class="table-card">
             <table>
                 <thead>
                     <tr>
-                        <th>Broj ugovora</th>
-                        <th>Kompanija</th>
-                        <th>Kupac</th>
-                        <th>Početak</th>
-                        <th>Kraj</th>
+                        <th>Contract Number</th>
+                        <th>Company</th>
+                        <th>Buyer</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
                         <th>Status</th>
-                        <th>Proizvodi</th>
-                        <th>Ukupno (sa PDV)</th>
-                        <th>Računi</th>
-                        <th>Akcije</th>
+                        <th>Products</th>
+                        <th>Total (with VAT)</th>
+                        <th>Invoices</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -414,7 +407,7 @@
                                         {{ $item->product->name }} - 
                                         {{ $item->quantity }} x 
                                         {{ number_format($item->unit_price, 2) }} 
-                                        (PDV: {{ $item->product->vatRate->percentage ?? 0 }}%)
+                                        (VAT: {{ $item->product->vatRate->percentage ?? 0 }}%)
                                     </li>
                                 @endforeach
                             </ul>
@@ -422,23 +415,20 @@
                         <td><strong>{{ number_format($contract->total_amount, 2) }}</strong></td>
                         <td>
                             @if($contract->invoices_count > 0)
-                            <a href="{{ route('contracts.invoices', $contract->id) }}" class="action-link">
-                            📄 Pogledaj račune ({{ $contract->invoices_count }})
-                            </a>
+                                <a href="{{ route('contracts.invoices', $contract->id) }}" class="action-link">
+                                    View ({{ $contract->invoices_count }})
+                                </a>
                             @else
-                            <span style="color:#9ca3af;">Nema računa</span>
+                                <span style="color:#9ca3af;">No invoices</span>
                             @endif
                         </td>
-
                         <td>
                             @if($contract->invoices_count == 0)
-                            <a href="{{ route('contracts.edit', $contract->id) }}" class="action-link">
-                                ✏️ Edit
-                            </a>
+                                <a href="{{ route('contracts.edit', $contract->id) }}" class="action-link">
+                                    Edit
+                                </a>
                             @else
-                            <span style="color:#9ca3af; cursor:not-allowed;">
-                                
-                            </span>
+                                <span style="color:#9ca3af;">—</span>
                             @endif
                         </td>
                     </tr>

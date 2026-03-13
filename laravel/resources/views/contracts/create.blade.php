@@ -3,73 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Novi Ugovor</title>
+    <title>New Contract - FiscalizationME</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .form-container {
+        .page-container {
             max-width: 1000px;
             margin: 0 auto;
+            padding: 32px;
         }
         
         .page-header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
         
-        .page-header h1 {
-            font-size: 36px;
+        .page-title {
+            font-size: 28px;
             font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
         }
         
         .form-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 48px;
-            animation: slideUp 0.5s ease;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 32px;
         }
         
         .form-section {
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
         
         .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 2px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
+            gap: 20px;
         }
         
         .form-group {
@@ -78,34 +67,31 @@
         }
         
         label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         input, select {
-            height: 48px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 15px;
-            background: #f9fafb;
-            color: #1f2937;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+            background: white;
+            color: #111827;
+            transition: all 0.2s;
         }
         
         input:hover, select:hover {
             border-color: #d1d5db;
-            background: white;
         }
         
         input:focus, select:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
         
         .items-autocomplete {
@@ -118,67 +104,63 @@
             left: 0;
             right: 0;
             background: white;
-            border: 2px solid #667eea;
-            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 10;
             margin-top: 4px;
-            box-shadow: 0 10px 30px rgba(102,126,234,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .suggestions div {
-            padding: 12px 16px;
+            padding: 10px 12px;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 14px;
+            font-size: 13px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .suggestions div:last-child {
+            border-bottom: none;
         }
         
         .suggestions div:hover {
-            background: linear-gradient(90deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+            background: #f9fafb;
         }
         
         .suggestions div:first-child {
-            font-weight: 700;
-            color: #667eea;
+            font-weight: 600;
+            color: #6366f1;
         }
         
         .item-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 16px;
-            margin-bottom: 16px;
-            padding: 20px;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 16px;
             background: #f9fafb;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
             align-items: center;
-            transition: all 0.3s ease;
-        }
-        
-        .item-row:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.15);
         }
         
         .item-row span {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
+            font-size: 13px;
             color: #374151;
             font-weight: 500;
         }
         
         .btn {
-            height: 48px;
-            padding: 0 28px;
-            border-radius: 12px;
-            border: none;
-            font-size: 15px;
-            font-weight: 600;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            transition: all 0.2s;
+            border: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -186,106 +168,103 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6366f1;
             color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+            background: #4f46e5;
         }
         
         .btn-secondary {
             background: white;
             color: #374151;
-            border: 2px solid #e5e7eb;
+            border: 1px solid #e5e7eb;
+            text-decoration: none;
         }
         
         .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
         }
         
-        .btn-add {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        .btn-success {
+            background: #10b981;
             color: white;
             width: 100%;
-            margin-top: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+            margin-top: 12px;
         }
         
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(16,185,129,0.4);
+        .btn-success:hover {
+            background: #059669;
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: #ef4444;
             color: white;
-            width: 48px;
-            height: 48px;
+            width: 36px;
+            height: 36px;
             padding: 0;
-            box-shadow: 0 2px 8px rgba(239,68,68,0.3);
         }
         
         .btn-danger:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+            background: #dc2626;
         }
         
         .form-actions {
             display: flex;
-            gap: 16px;
-            margin-top: 48px;
-            padding-top: 32px;
-            border-top: 2px solid #f3f4f6;
+            gap: 12px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
         }
         
         .form-actions .btn-primary {
             flex: 1;
-            height: 56px;
-            font-size: 16px;
-        }
-        
-        .form-actions a {
-            text-decoration: none;
+            height: 40px;
         }
         
         @media (max-width: 768px) {
-            body { padding: 20px 16px; }
-            .form-card { padding: 28px 20px; }
-            .page-header h1 { font-size: 28px; }
-            .form-grid { grid-template-columns: 1fr; }
-            .item-row { grid-template-columns: 1fr; padding: 16px; }
+            .page-container {
+                padding: 16px;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>✨ Novi Ugovor</h1>
+            <h1 class="page-title">New Contract</h1>
+            <p class="page-subtitle">Create a new contract with buyer and products</p>
         </div>
 
         <div class="form-card">
             <form method="POST" action="{{ route('contracts.store') }}">
                 @csrf
 
-                {{-- Osnovni podaci --}}
                 <div class="form-section">
-                    <h3 class="section-title">Osnovne informacije</h3>
+                    <h3 class="section-title">Basic Information</h3>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Broj ugovora:</label>
+                            <label>Contract Number</label>
                             <input type="text" name="contract_number" required>
                         </div>
 
                         <div class="form-group">
-                            <label>Kompanija:</label>
+                            <label>Company</label>
                             <select name="company_id" required>
                                 @foreach($companies as $company)
                                     <option value="{{ $company->id }}">{{ $company->name }}</option>
@@ -294,7 +273,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Kupac:</label>
+                            <label>Buyer</label>
                             <select name="buyer_id" required>
                                 @foreach($buyers as $buyer)
                                     <option value="{{ $buyer->id }}">{{ $buyer->name }}</option>
@@ -303,7 +282,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Status:</label>
+                            <label>Status</label>
                             <select name="status">
                                 <option value="active">Active</option>
                                 <option value="paused">Paused</option>
@@ -312,17 +291,17 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Početak:</label>
+                            <label>Start Date</label>
                             <input type="date" name="start_date" required>
                         </div>
 
                         <div class="form-group">
-                            <label>Kraj:</label>
+                            <label>End Date</label>
                             <input type="date" name="end_date" required>
                         </div>
 
                         <div class="form-group">
-                            <label>Billing frequency:</label>
+                            <label>Billing Frequency</label>
                             <select name="billing_frequency">
                                 <option value="monthly">Monthly</option>
                                 <option value="quarterly">Quarterly</option>
@@ -331,42 +310,40 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Dan izdavanja:</label>
+                            <label>Issue Day</label>
                             <input type="number" name="issue_day" min="1" max="31" required>
                         </div>
                     </div>
                 </div>
 
-                {{-- Stavke ugovora --}}
                 <div class="form-section">
-                    <h3 class="section-title">Stavke ugovora</h3>
+                    <h3 class="section-title">Contract Items</h3>
 
                     <div class="form-group items-autocomplete">
-                        <label>Naziv proizvoda:</label>
-                        <input type="text" id="product-search" placeholder="Pretraži...">
+                        <label>Product Name</label>
+                        <input type="text" id="product-search" placeholder="Search products...">
                         <div id="suggestions" class="suggestions" style="display:none;"></div>
                     </div>
 
                     <div class="form-group" style="margin-top: 10px;">
-                        <label>Količina:</label>
+                        <label>Quantity</label>
                         <input type="number" id="product-quantity" step="0.01" value="1">
                     </div>
 
                     <div class="form-group" style="margin-top: 10px;">
-                        <label>Cijena:</label>
+                        <label>Price</label>
                         <input type="number" id="product-price" step="0.01" value="0">
                     </div>
 
-                    <button type="button" class="btn btn-add" onclick="addItem()">+ Dodaj stavku</button>
+                    <button type="button" class="btn btn-success" onclick="addItem()">+ Add Item</button>
 
                     <div id="items-container"></div>
                 </div>
 
-                {{-- Submit --}}
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Sačuvaj ugovor</button>
-                    <a href="{{ route('contracts.index') }}">
-                        <button type="button" class="btn btn-secondary">⬅ Nazad</button>
+                    <button type="submit" class="btn btn-primary">Save Contract</button>
+                    <a href="{{ route('contracts.index') }}" class="btn btn-secondary">
+                        Cancel
                     </a>
                 </div>
             </form>
@@ -378,7 +355,6 @@
     const searchInput = document.getElementById('product-search');
     const suggestions = document.getElementById('suggestions');
 
-    // --- Autocomplete ---
     searchInput.addEventListener('input', function() {
         const query = this.value.toLowerCase();
         suggestions.innerHTML = '';
@@ -388,7 +364,7 @@
 
         if(filtered.length === 0){
             const div = document.createElement('div');
-            div.textContent = `Dodaj novi proizvod: "${searchInput.value}"`;
+            div.textContent = `Add new product: "${searchInput.value}"`;
             div.style.fontWeight = 'bold';
             div.addEventListener('click', async () => {
                 const res = await fetch("{{ route('products.ajaxStore') }}", {
@@ -415,7 +391,7 @@
         } else {
             filtered.forEach(p => {
                 const div = document.createElement('div');
-                div.textContent = `${p.name} (PDV ${p.vatRate.percentage}%)`;
+                div.textContent = `${p.name} (VAT ${p.vatRate.percentage}%)`;
                 div.dataset.id = p.id;
                 div.dataset.price = p.price;
                 div.dataset.vat = p.vatRate.percentage;
@@ -433,14 +409,13 @@
         searchInput.dataset.vat = product.vatRate.percentage;
     }
 
-    // --- Dodavanje stavke ---
     function addItem() {
         const name = searchInput.value.trim();
         const quantity = parseFloat(document.getElementById('product-quantity').value) || 1;
         const price = parseFloat(document.getElementById('product-price').value) || 0;
         const vatPercentage = parseFloat(searchInput.dataset.vat) || 0;
 
-        if (!name) return alert('Unesite naziv proizvoda');
+        if (!name) return alert('Enter product name');
 
         const totalPrice = quantity * price;
         const totalPriceWithVat = totalPrice + (totalPrice * vatPercentage / 100);
@@ -453,7 +428,7 @@
             <span>${name}</span>
             <span>${quantity}</span>
             <span>${price.toFixed(2)}</span>
-            <span>${totalPriceWithVat.toFixed(2)} (sa PDV)</span>
+            <span>${totalPriceWithVat.toFixed(2)} (with VAT)</span>
             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
         `;
 
@@ -465,14 +440,13 @@
         suggestions.style.display = 'none';
     }
 
-    // --- Submit sa JSON-om ---
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e){
         const container = document.getElementById('items-container');
         const rows = container.querySelectorAll('.item-row');
         if(rows.length === 0){
             e.preventDefault();
-            alert('Dodajte bar jednu stavku!');
+            alert('Add at least one item!');
             return;
         }
 
@@ -492,7 +466,6 @@
         hiddenInput.value = JSON.stringify(itemsData);
     });
 
-    // --- Dropdown handling ---
     document.addEventListener('click', function(e) {
         if (!suggestions.contains(e.target) && e.target !== searchInput) suggestions.style.display = 'none';
     });

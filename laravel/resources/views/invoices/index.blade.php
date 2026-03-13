@@ -3,140 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Računi</title>
+    <title>Invoices - FiscalizationME</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .invoice-container {
-            max-width: 1600px;
+        .page-container {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 32px;
         }
         
         .page-header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
         
-        .page-header h1 {
-            font-size: 42px;
+        .page-title {
+            font-size: 28px;
             font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #111827;
+            margin-bottom: 8px;
         }
         
-        .controls-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 32px;
-            margin-bottom: 32px;
-            animation: slideUp 0.5s ease;
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
         }
         
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .tabs-container {
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 24px;
         }
         
-        .filter-container {
+        .tabs {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: #111827;
+        }
+        
+        .tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+        
+        .controls-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 24px;
+            margin-bottom: 24px;
+            gap: 16px;
             flex-wrap: wrap;
         }
         
-        .date-filter {
+        .date-filters {
             display: flex;
+            gap: 8px;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
             flex: 1;
         }
         
-        .date-filter select,
-        .date-filter input {
-            height: 44px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 14px;
-            background: #f9fafb;
-            color: #374151;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-        
-        .date-filter select:hover,
-        .date-filter input:hover {
-            border-color: #d1d5db;
+        .date-filters select,
+        .date-filters input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
             background: white;
+            color: #374151;
         }
         
-        .date-filter select:focus,
-        .date-filter input:focus {
+        .date-filters select:focus,
+        .date-filters input:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
         
-        .date-filter button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
+        .btn {
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .date-filter button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+        .btn-primary {
+            background: #6366f1;
+            color: white;
         }
         
-        .back-button a {
-            text-decoration: none;
+        .btn-primary:hover {
+            background: #4f46e5;
         }
         
-        .back-button button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
+        .btn-secondary {
             background: white;
             color: #374151;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            border: 1px solid #e5e7eb;
         }
         
-        .back-button button:hover {
+        .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
         }
         
         .table-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
-            animation: slideUp 0.6s ease;
         }
         
         table {
@@ -145,26 +144,27 @@
         }
         
         thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         thead th {
-            padding: 20px 24px;
+            padding: 12px 16px;
             text-align: left;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
         
         tbody tr {
             border-bottom: 1px solid #f3f4f6;
-            transition: all 0.3s ease;
+            transition: background 0.2s;
         }
         
         tbody tr:hover {
-            background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            background: #f9fafb;
         }
         
         tbody tr:last-child {
@@ -172,16 +172,15 @@
         }
         
         tbody td {
-            padding: 20px 24px;
+            padding: 16px;
             font-size: 14px;
             color: #374151;
             vertical-align: top;
         }
         
         tbody td:first-child {
-            font-weight: 700;
-            color: #1f2937;
-            font-size: 15px;
+            font-weight: 600;
+            color: #111827;
         }
         
         .product-list {
@@ -191,72 +190,79 @@
         }
         
         .product-list li {
-            padding: 6px 0;
+            padding: 4px 0;
             font-size: 13px;
             color: #6b7280;
-            line-height: 1.6;
-        }
-        
-        .product-list li:first-child {
-            padding-top: 0;
-        }
-        
-        .product-list li:last-child {
-            padding-bottom: 0;
         }
         
         @media (max-width: 1024px) {
-            body { padding: 20px 16px; }
-            .page-header h1 { font-size: 32px; }
-            .controls-card { padding: 24px; }
-            .filter-container { flex-direction: column; align-items: stretch; }
-            .date-filter { flex-direction: column; align-items: stretch; }
-            .date-filter select, .date-filter input, .date-filter button, .back-button button { width: 100%; }
-            .table-card { overflow-x: auto; }
-            table { min-width: 1000px; }
+            .page-container {
+                padding: 16px;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-filters {
+                flex-direction: column;
+            }
+            
+            .table-card {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 1000px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="invoice-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>Računi</h1>
+            <h1 class="page-title">Invoices</h1>
+            <p class="page-subtitle">View and manage all invoices</p>
         </div>
-
-        <div class="controls-card">
-            <div class="filter-container">
-                {{-- DATE FILTER --}}
-                <form method="GET" action="{{ route('invoices.index') }}" class="date-filter">
-                    <select name="range">
-                        <option value="">All time</option>
-                        <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
-                        <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
-                        <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
-                    </select>
-
-                    <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
-                    <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
-
-                    <button type="submit">🔍 Pretraži</button>
-                </form>
+        
+        <div class="tabs-container">
+            <div class="tabs">
+                <a href="#" class="tab active">All Invoices</a>
             </div>
         </div>
-
+        
+        <div class="controls-bar">
+            <form method="GET" action="{{ route('invoices.index') }}" class="date-filters">
+                <select name="range">
+                    <option value="">All time</option>
+                    <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
+                    <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
+                    <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
+                </select>
+                
+                <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
+                <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
+                
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </form>
+        </div>
+        
         <div class="table-card">
             <table>
                 <thead>
                     <tr>
-                        <th>Broj računa</th>
-                        <th>Kompanija</th>
-                        <th>Kupac</th>
-                        <th>Prodavac</th>
-                        <th>Datum izdavanja</th>
-                        <th>Ukupno (sa PDV)</th>
-                        <th>Ukupno PDV</th>
-                        <th>Metoda plaćanja</th>
-                        <th>Proizvodi</th>
+                        <th>Invoice Number</th>
+                        <th>Company</th>
+                        <th>Buyer</th>
+                        <th>Seller</th>
+                        <th>Issue Date</th>
+                        <th>Total (with VAT)</th>
+                        <th>Total VAT</th>
+                        <th>Payment Method</th>
+                        <th>Products</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -277,7 +283,7 @@
                                         {{ $item->product->name }} -
                                         {{ $item->quantity }} x
                                         {{ number_format($item->unit_price, 2) }}
-                                        (PDV: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
+                                        (VAT: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
                                     </li>
                                 @endforeach
                             </ul>

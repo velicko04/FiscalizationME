@@ -3,163 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Računi za ugovor</title>
+    <title>Contract Invoices - FiscalizationME</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .invoice-container {
-            max-width: 1600px;
+        .page-container {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 32px;
         }
         
         .page-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        
-        .page-header h1 {
-            font-size: 38px;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 16px;
         }
         
-        .contract-info-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px 32px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: flex;
-            gap: 48px;
-            justify-content: center;
-            animation: slideUp 0.5s ease;
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
         }
         
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .contract-info-card p {
-            font-size: 15px;
+        .page-subtitle {
+            font-size: 14px;
             color: #6b7280;
         }
         
-        .contract-info-card strong {
-            color: #1f2937;
-            font-weight: 700;
-        }
-        
-        .controls-card {
+        .info-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 32px;
-            margin-bottom: 32px;
-            animation: slideUp 0.6s ease;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 48px;
         }
         
-        .filter-container {
+        .info-item {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .info-item strong {
+            color: #111827;
+            font-weight: 600;
+        }
+        
+        .tabs-container {
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: #111827;
+        }
+        
+        .tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+        
+        .controls-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 24px;
+            margin-bottom: 24px;
+            gap: 16px;
             flex-wrap: wrap;
         }
         
-        .date-filter {
+        .date-filters {
             display: flex;
+            gap: 8px;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
             flex: 1;
         }
         
-        .date-filter select,
-        .date-filter input {
-            height: 44px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            font-size: 14px;
-            background: #f9fafb;
-            color: #374151;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-        
-        .date-filter select:hover,
-        .date-filter input:hover {
-            border-color: #d1d5db;
+        .date-filters select,
+        .date-filters input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
             background: white;
+            color: #374151;
         }
         
-        .date-filter select:focus,
-        .date-filter input:focus {
+        .date-filters select:focus,
+        .date-filters input:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
         
-        .date-filter button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
+        .btn {
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .date-filter button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+        .btn-primary {
+            background: #6366f1;
+            color: white;
         }
         
-        .back-button a {
-            text-decoration: none;
+        .btn-primary:hover {
+            background: #4f46e5;
         }
         
-        .back-button button {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
+        .btn-secondary {
             background: white;
             color: #374151;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            border: 1px solid #e5e7eb;
         }
         
-        .back-button button:hover {
+        .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
         }
         
         .table-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
-            animation: slideUp 0.7s ease;
         }
         
         table {
@@ -168,26 +173,27 @@
         }
         
         thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         thead th {
-            padding: 20px 24px;
+            padding: 12px 16px;
             text-align: left;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
         
         tbody tr {
             border-bottom: 1px solid #f3f4f6;
-            transition: all 0.3s ease;
+            transition: background 0.2s;
         }
         
         tbody tr:hover {
-            background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            background: #f9fafb;
         }
         
         tbody tr:last-child {
@@ -195,16 +201,15 @@
         }
         
         tbody td {
-            padding: 20px 24px;
+            padding: 16px;
             font-size: 14px;
             color: #374151;
             vertical-align: top;
         }
         
         tbody td:first-child {
-            font-weight: 700;
-            color: #1f2937;
-            font-size: 15px;
+            font-weight: 600;
+            color: #111827;
         }
         
         .product-list {
@@ -214,101 +219,111 @@
         }
         
         .product-list li {
-            padding: 6px 0;
+            padding: 4px 0;
             font-size: 13px;
             color: #6b7280;
-            line-height: 1.6;
-        }
-        
-        .product-list li:first-child {
-            padding-top: 0;
-        }
-        
-        .product-list li:last-child {
-            padding-bottom: 0;
         }
         
         .empty-state {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 80px 40px;
+            padding: 80px 20px;
             text-align: center;
-            animation: slideUp 0.7s ease;
         }
         
         .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
         }
         
         .empty-state p {
-            font-size: 18px;
+            font-size: 16px;
             color: #6b7280;
-            font-weight: 500;
         }
         
         @media (max-width: 1024px) {
-            body { padding: 20px 16px; }
-            .page-header h1 { font-size: 28px; }
-            .contract-info-card { flex-direction: column; gap: 16px; text-align: center; }
-            .controls-card { padding: 24px; }
-            .filter-container { flex-direction: column; align-items: stretch; }
-            .date-filter { flex-direction: column; align-items: stretch; }
-            .date-filter select, .date-filter input, .date-filter button, .back-button button { width: 100%; }
-            .table-card { overflow-x: auto; }
-            table { min-width: 1000px; }
-            .empty-state { padding: 60px 20px; }
+            .page-container {
+                padding: 16px;
+            }
+            
+            .info-card {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-filters {
+                flex-direction: column;
+            }
+            
+            .table-card {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 1000px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="invoice-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>📄 Računi za ugovor {{ $contract->contract_number }}</h1>
+            <h1 class="page-title">Invoices for Contract {{ $contract->contract_number }}</h1>
+            <p class="page-subtitle">View all invoices generated from this contract</p>
         </div>
-
-        <div class="contract-info-card">
-            <p><strong>Kompanija:</strong> {{ $contract->company->name }}</p>
-            <p><strong>Kupac:</strong> {{ $contract->buyer->name }}</p>
-        </div>
-
-        <div class="controls-card">
-            <div class="filter-container">
-                {{-- DATE FILTER --}}
-                <form method="GET" action="{{ route('contracts.invoices', $contract->id) }}" class="date-filter">
-                    <select name="range">
-                        <option value="">All time</option>
-                        <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
-                        <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
-                        <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
-                    </select>
-
-                    <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
-                    <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
-
-                    <button type="submit">🔍 Pretraži</button>
-                </form>
+        
+        <div class="info-card">
+            <div class="info-item">
+                <strong>Company:</strong> {{ $contract->company->name }}
+            </div>
+            <div class="info-item">
+                <strong>Buyer:</strong> {{ $contract->buyer->name }}
             </div>
         </div>
-
+        
+        <div class="tabs-container">
+            <div class="tabs">
+                <a href="#" class="tab active">All Invoices</a>
+            </div>
+        </div>
+        
+        <div class="controls-bar">
+            <form method="GET" action="{{ route('contracts.invoices', $contract->id) }}" class="date-filters">
+                <select name="range">
+                    <option value="">All time</option>
+                    <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
+                    <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
+                    <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
+                </select>
+                
+                <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
+                <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
+                
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </form>
+        </div>
+        
         @if($invoices->count())
         <div class="table-card">
             <table>
                 <thead>
                     <tr>
-                        <th>Broj računa</th>
-                        <th>Kompanija</th>
-                        <th>Kupac</th>
-                        <th>Prodavac</th>
-                        <th>Datum izdavanja</th>
-                        <th>Ukupno (sa PDV)</th>
-                        <th>Ukupno PDV</th>
-                        <th>Metoda plaćanja</th>
-                        <th>Proizvodi</th>
-                        <th>XML</th>
+                        <th>Invoice Number</th>
+                        <th>Company</th>
+                        <th>Buyer</th>
+                        <th>Seller</th>
+                        <th>Issue Date</th>
+                        <th>Total (with VAT)</th>
+                        <th>Total VAT</th>
+                        <th>Payment Method</th>
+                        <th>Products</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -329,14 +344,14 @@
                                         {{ $item->product->name }} - 
                                         {{ $item->quantity }} x 
                                         {{ number_format($item->unit_price, 2) }} 
-                                        (PDV: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
+                                        (VAT: {{ $item->product->vatRate ? $item->product->vatRate->percentage : 0 }}%)
                                     </li>
                                 @endforeach
                             </ul>
                         </td>
                         <td>
-                            <button onclick="fiskalizuj({{ $invoice->id }})" style="padding:8px 12px;border-radius:8px;border:none;background:#667eea;color:white;cursor:pointer;">
-                                Fiskalizuj
+                            <button onclick="fiskalizuj({{ $invoice->id }})" class="btn btn-success">
+                                Fiscalize
                             </button>
                         </td>
                     </tr>
@@ -345,44 +360,45 @@
             </table>
         </div>
         @else
-        <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <p>Nema računa za ovaj ugovor.</p>
+        <div class="table-card">
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>No invoices found for this contract.</p>
+            </div>
         </div>
         @endif
     </div>
+
+    <script>
+    function fiskalizuj(invoiceId) {
+        fetch('/invoice/' + invoiceId + '/fiskalizuj', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(async response => {
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Invalid JSON:', text);
+                alert('Invalid response from server. Check console for details.');
+                return;
+            }
+
+            console.log('Fiscalization response:', data);
+            alert(`Status: ${data.status}\nTax authority response:\n${data.body}`);
+        })
+        .catch(err => {
+            console.error('Fetch error:', err);
+            alert('Error sending request: ' + err);
+        });
+    }
+    </script>
 </body>
 </html>
-
-
-<script>
-function fiskalizuj(invoiceId) {
-    fetch('/invoice/' + invoiceId + '/fiskalizuj', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-    })
-    .then(async response => {
-        const text = await response.text(); // uzimamo raw text
-        let data;
-        try {
-            data = JSON.parse(text); // pokušaj parse JSON
-        } catch (e) {
-            console.error('Nije validan JSON:', text);
-            alert('Nevalidan odgovor sa servera. Pogledaj konzolu za detalje.');
-            return;
-        }
-
-        console.log('Fiskalizacija response:', data); // log u konzolu
-        alert(`Status: ${data.status}\nOdgovor poreske:\n${data.body}`);
-    })
-    .catch(err => {
-        console.error('Fetch greška:', err);
-        alert('Greška prilikom slanja: ' + err);
-    });
-}
-</script>

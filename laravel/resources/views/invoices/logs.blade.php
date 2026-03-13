@@ -3,230 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fiscal Logs</title>
+    <title>Fiscal Logs - FiscalizationME</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            color: #111827;
         }
         
-        .logs-container { max-width: 1600px; margin: 0 auto; }
-        
-        .page-header { text-align: center; margin-bottom: 30px; }
-        
-        .page-header h1 {
-            font-size: 42px;
-            font-weight: 700;
-            color: white;
-        }
-
-        .filter-card {
-            background: white;
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 32px;
-            border-radius: 20px;
-            margin-bottom: 30px;
+        }
+        
+        .page-header {
+            margin-bottom: 24px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .tabs-container {
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+        
+        .tabs {
             display: flex;
+            gap: 32px;
+        }
+        
+        .tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: #111827;
+        }
+        
+        .tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+        
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
             gap: 16px;
             flex-wrap: wrap;
-            align-items: end;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideUp 0.5s ease;
         }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .filter-group {
+        
+        .filter-form {
             display: flex;
-            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
         }
-
-        .filter-group label {
-            font-size: 14px;
-            font-weight: 600;
+        
+        .filter-form input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
             color: #374151;
-            margin-bottom: 10px;
-        }
-
-        .filter-group input {
-            height: 44px;
-            padding: 0 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
             min-width: 250px;
-            font-size: 14px;
-            background: #f9fafb;
-            color: #1f2937;
-            transition: all 0.3s ease;
-            font-family: inherit;
         }
-
-        .filter-group input:hover {
-            border-color: #d1d5db;
-            background: white;
-        }
-
-        .filter-group input:focus {
+        
+        .filter-form input:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
-
+        
         .btn {
-            height: 44px;
-            padding: 0 24px;
-            border-radius: 12px;
-            font-weight: 600;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.2s;
             border: none;
-            text-decoration: none;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            font-family: inherit;
+            gap: 8px;
         }
-
+        
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6366f1;
             color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
         }
-
+        
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102,126,234,0.5);
+            background: #4f46e5;
         }
-
+        
         .btn-secondary {
             background: white;
             color: #374151;
-            border: 2px solid #e5e7eb;
-        }
-
-        .btn-secondary:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
+            border: 1px solid #e5e7eb;
+            text-decoration: none;
         }
         
-        .results-count {
-            color: white;
+        .btn-secondary:hover {
+            background: #f9fafb;
+        }
+        
+        .results-info {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        
+        .results-info strong {
+            color: #111827;
             font-weight: 600;
-            margin-bottom: 15px;
         }
         
         .table-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
-            animation: slideUp 0.6s ease;
         }
         
-        table { width: 100%; border-collapse: collapse; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
         
         thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         thead th {
-            padding: 20px 24px;
+            padding: 12px 16px;
             text-align: left;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         
         tbody tr {
             border-bottom: 1px solid #f3f4f6;
-            transition: 0.3s;
+            transition: background 0.2s;
         }
         
         tbody tr:hover {
-            background: rgba(102,126,234,0.05);
+            background: #f9fafb;
+        }
+        
+        tbody tr:last-child {
+            border-bottom: none;
         }
         
         tbody td {
-            padding: 20px 24px;
+            padding: 16px;
             font-size: 14px;
+            color: #374151;
             vertical-align: top;
         }
         
-        .invoice-text {
-            font-weight: 700;
-            color: #1f2937;
+        tbody td:first-child {
+            font-weight: 600;
+            color: #111827;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
+            padding: 4px 12px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
+            font-weight: 600;
         }
         
-        .status-success { background: #d1fae5; color: #065f46; }
-        .status-error { background: #fee2e2; color: #991b1b; }
-        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
         
-        .error-message { color: #dc2626; font-size: 13px; }
-        .date-text { color: #6b7280; font-size: 13px; }
-
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-size: 13px;
+            max-width: 400px;
+        }
+        
+        .date-text {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
         .no-results {
-            padding: 40px;
+            padding: 60px 20px;
             text-align: center;
             color: #6b7280;
+        }
+        
+        @media (max-width: 1024px) {
+            .page-container {
+                padding: 16px;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-form {
+                flex-direction: column;
+            }
+            
+            .filter-form input {
+                width: 100%;
+            }
+            
+            .table-card {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="logs-container">
-        @include('partials.admin-navbar')
-        
+    @include('partials.admin-navbar')
+    
+    <div class="page-container">
         <div class="page-header">
-            <h1>📊Logovi</h1>
+            <h1 class="page-title">Fiscal Logs</h1>
+            <p class="page-subtitle">Monitor fiscalization status and errors</p>
         </div>
-
-        <form method="GET" action="{{ route('invoices.logs') }}" class="filter-card">
-            <div class="filter-group">
-                <label>Invoice Number</label>
+        
+        <div class="tabs-container">
+            <div class="tabs">
+                <a href="#" class="tab active">All Logs</a>
+            </div>
+        </div>
+        
+        <div class="controls-bar">
+            <form method="GET" action="{{ route('invoices.logs') }}" class="filter-form">
                 <input type="text"
                        name="invoice_number"
-                       placeholder="e.g. 1/2026/pg001pg001"
+                       placeholder="Search by invoice number..."
                        value="{{ request('invoice_number') }}">
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-                Filter
-            </button>
-
-            <a href="{{ route('invoices.logs') }}" class="btn btn-secondary">
-                Reset
-            </a>
-        </form>
-          
-        <div class="results-count">
-            Total logs: {{ $logs->count() }}
+                
+                <button type="submit" class="btn btn-primary">
+                    Filter
+                </button>
+                
+                <a href="{{ route('invoices.logs') }}" class="btn btn-secondary">
+                    Reset
+                </a>
+            </form>
         </div>
-
+        
+        <div class="results-info">
+            Total logs: <strong>{{ $logs->count() }}</strong>
+        </div>
+        
         <div class="table-card">
             <table>
                 <thead>
                     <tr>
                         <th>Invoice Number</th>
                         <th>Status</th>
-                        <th>Error</th>
+                        <th>Error Message</th>
                         <th>Date</th>
                     </tr>
                 </thead>
@@ -234,9 +312,7 @@
                     @forelse($logs as $log)
                         <tr>
                             <td>
-                                <span class="invoice-text">
-                                    {{ $log->invoice->invoice_number ?? 'N/A' }}
-                                </span>
+                                {{ $log->invoice->invoice_number ?? 'N/A' }}
                             </td>
                             <td>
                                 <span class="status-badge status-{{ strtolower($log->status) }}">
@@ -245,7 +321,7 @@
                             </td>
                             <td>
                                 <span class="error-message">
-                                    {{ $log->error_message ?? '-' }}
+                                    {{ $log->error_message ?? '—' }}
                                 </span>
                             </td>
                             <td>
@@ -257,14 +333,13 @@
                     @empty
                         <tr>
                             <td colspan="4" class="no-results">
-                                No logs found for given filters.
+                                No logs found for the given filters.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
     </div>
 </body>
 </html>
