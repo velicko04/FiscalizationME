@@ -174,13 +174,13 @@
         
         <div class="main-nav">
             <a href="{{ route('contracts.index') }}" class="{{ request()->routeIs('contracts.*') ? 'active' : '' }}">
-                <span>📋</span> Contracts
+               Contracts
             </a>
             <a href="{{ route('invoices.index') }}" class="{{ request()->routeIs('invoices.index') ? 'active' : '' }}">
-                <span>💰</span> Invoices
+               Invoices
             </a>
             <a href="{{ route('invoices.logs') }}" class="{{ request()->routeIs('invoices.logs') ? 'active' : '' }}">
-                <span>📊</span> Fiscal Logs
+              Fiscal Logs
             </a>
         </div>
     </div>
