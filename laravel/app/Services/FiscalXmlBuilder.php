@@ -69,7 +69,7 @@ class FiscalXmlBuilder
         $invoiceEl->setAttribute('BusinUnitCode', $company->business_unit_code);
         $dt = new \DateTime($invoice->issued_at->format('Y-m-d H:i:s'));
         $dt->setTimezone(new \DateTimeZone('+01:00'));
-        $invoiceEl->setAttribute('IssueDateTime', $dt->format('c'));
+        $invoiceEl->setAttribute('IssueDateTime', $sendDateTime);
         $invoiceEl->setAttribute('IIC', $invoice->iic ?? '');
         $invoiceEl->setAttribute('IICSignature', $invoice->iic_signature ?? '');
         $invoiceEl->setAttribute('InvNum', $invoice->invoice_number);
