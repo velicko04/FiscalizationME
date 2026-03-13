@@ -231,13 +231,13 @@ class XmlController extends Controller
     $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 
     $objDSig->addReference(
-        $dom->documentElement,
-        XMLSecurityDSig::SHA256,
-        [
-            'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-            'http://www.w3.org/2001/10/xml-exc-c14n#'
-        ],
-        ['uri' => '#Request']
+    $dom->documentElement,
+    XMLSecurityDSig::SHA256,
+    [
+        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+        'http://www.w3.org/2001/10/xml-exc-c14n#'
+    ],
+    ['uri' => '#Request']
     );
 
     $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
@@ -251,7 +251,14 @@ class XmlController extends Controller
     $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
 
     if ($nodes->length > 0) {
-        $objDSig->appendSignature($nodes->item(0));
+    $objDSig->appendSignature($nodes->item(0));
+}
+
+    // Ukloni nekvalifikovane Id atribute koje xmlseclibs doda
+    $xpath2 = new \DOMXPath($dom);
+    $allElements = $xpath2->query('//*[@Id]');
+    foreach ($allElements as $el) {
+        $el->removeAttribute('Id');
     }
 
     return $dom->saveXML();

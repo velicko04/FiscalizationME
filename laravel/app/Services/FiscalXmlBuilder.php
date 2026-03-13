@@ -40,8 +40,8 @@ class FiscalXmlBuilder
         );
 
         $root->setAttribute('xmlns:ns2', 'http://www.w3.org/2000/09/xmldsig#');
-        $root->setAttribute('Id', 'Request');
         $root->setAttribute('Version', '1');
+        $root->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:id', 'Request');
 
         $soapBody->appendChild($root);
 
