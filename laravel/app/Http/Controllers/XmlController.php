@@ -227,17 +227,27 @@ class XmlController extends Controller
     $dom = new \DOMDocument();
     $dom->loadXML($xml);
 
+    $xpath = new \DOMXPath($dom);
+    $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
+    $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
+
+    if ($nodes->length === 0) {
+        throw new \Exception("RegisterInvoiceRequest element nije pronađen.");
+    }
+
+    $requestNode = $nodes->item(0);
+
     $objDSig = new XMLSecurityDSig();
     $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 
     $objDSig->addReference(
-        $dom->documentElement,
+        $requestNode,
         XMLSecurityDSig::SHA256,
         [
             'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
             'http://www.w3.org/2001/10/xml-exc-c14n#'
         ],
-        ['uri' => '#Request']
+        ['uri' => '#Request', 'overwrite' => false]
     );
 
     $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
@@ -245,22 +255,7 @@ class XmlController extends Controller
 
     $objDSig->sign($objKey);
     $objDSig->add509Cert($publicCert, true, false);
-
-    $xpath = new \DOMXPath($dom);
-    $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
-    $nodes = $xpath->query('//ns:RegisterInvoiceRequest');
-
-    if ($nodes->length > 0) {
-        $objDSig->appendSignature($nodes->item(0));
-    }
-
-    // Ukloni Id SAMO sa Signature elementa
-    $xpath2 = new \DOMXPath($dom);
-    $xpath2->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
-    $signatureElements = $xpath2->query('//ds:Signature[@Id]');
-    foreach ($signatureElements as $el) {
-        $el->removeAttribute('Id');
-    }
+    $objDSig->appendSignature($requestNode);
 
     return $dom->saveXML();
 }
