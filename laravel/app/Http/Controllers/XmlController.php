@@ -252,13 +252,19 @@ class XmlController extends Controller
 
     if ($nodes->length > 0) {
     $objDSig->appendSignature($nodes->item(0));
-}
+    }
 
     // Ukloni nekvalifikovane Id atribute koje xmlseclibs doda
     $xpath2 = new \DOMXPath($dom);
     $allElements = $xpath2->query('//*[@Id]');
     foreach ($allElements as $el) {
         $el->removeAttribute('Id');
+    }
+
+    // Dodaj Id="Request" nazad na RegisterInvoiceRequest
+    $nodes2 = $xpath->query('//ns:RegisterInvoiceRequest');
+    if ($nodes2->length > 0) {
+        $nodes2->item(0)->setAttribute('Id', 'Request');
     }
 
     return $dom->saveXML();
