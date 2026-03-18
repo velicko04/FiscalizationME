@@ -437,10 +437,12 @@
                 
                 <div class="dropdown-divider"></div>
                 
-                <a class="dropdown-link logout" href="#">
-                    
-                    <div class="settings-text">Logout</div>
-                </a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="dropdown-link logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+                        <div class="settings-text">Logout</div>
+                    </button>
+                </form>
             </div>
         </div>
     </div>

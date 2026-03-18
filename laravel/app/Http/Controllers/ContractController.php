@@ -37,32 +37,31 @@ class ContractController extends Controller
     }
 
     // INVOICES PO UGOVORU
-    public function invoices($id)
-    {
-        $contract = Contract::with('company', 'buyer')->findOrFail($id);
+    public function invoices($id, Request $request)
+{
+    $contract = Contract::with('company', 'buyer')->findOrFail($id);
 
-        $invoices = Invoice::where('contract_id', $id)
-            ->with('company', 'buyer', 'user', 'items.product.vatRate')
-            ->get();
+    $query = Invoice::where('contract_id', $id)
+        ->with('company', 'buyer', 'user', 'items.product.vatRate');
 
-        return view('contracts.invoices', compact('contract', 'invoices'));
+    // Filter po range
+    if ($request->filled('range')) {
+        $query->where('issued_at', '>=', now()->subDays($request->range));
     }
 
-    // CREATE FORM
-    public function create()
-{
-    $companies = Company::all();
-    $buyers = Buyer::all();
-    $products = Product::with('vatRate')->get()->map(function($p){
-        return [
-            'id' => $p->id,
-            'name' => $p->name,
-            'price' => $p->price,
-            'vatRate' => ['percentage' => $p->vatRate->percentage ?? 0]
-        ];
-    });
+    // Filter po datumu od-do
+    if ($request->filled('from')) {
+        $query->where('issued_at', '>=', $request->from);
+    }
 
-    return view('contracts.create', compact('companies', 'buyers', 'products'));
+    if ($request->filled('to')) {
+        $query->where('issued_at', '<=', $request->to . ' 23:59:59');
+    }
+
+    // Najnoviji prvi
+    $invoices = $query->orderBy('issued_at', 'desc')->get();
+
+    return view('contracts.invoices', compact('contract', 'invoices'));
 }
 
 
