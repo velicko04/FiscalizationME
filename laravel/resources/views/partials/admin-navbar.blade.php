@@ -272,11 +272,6 @@
         flex: 1;
     }
     
-    .dropdown-divider {
-        height: 1px;
-        background: #e5e7eb;
-        margin: 4px 0;
-    }
     
     .logout {
         color: #ef4444;

@@ -134,24 +134,63 @@
             color: #6366f1;
         }
         
-        .item-row {
+        .add-item-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 12px;
-            margin-bottom: 12px;
+            grid-template-columns: 1fr 100px 130px auto;
+            gap: 10px;
+            align-items: end;
             padding: 16px;
             background: #f9fafb;
-            border-radius: 8px;
             border: 1px solid #e5e7eb;
-            align-items: center;
+            border-radius: 10px;
+            margin-bottom: 16px;
         }
-        
-        .item-row span {
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+        }
+
+        .items-table thead th {
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .items-table tbody tr {
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .items-table tbody td {
+            padding: 10px 12px;
             font-size: 13px;
             color: #374151;
-            font-weight: 500;
         }
-        
+
+        .items-table tbody td:first-child {
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .items-table-wrap {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+
+
         .btn {
             height: 36px;
             padding: 0 16px;
@@ -190,8 +229,8 @@
         .btn-success {
             background: #10b981;
             color: white;
-            width: 100%;
-            margin-top: 12px;
+            height: 40px;
+            white-space: nowrap;
         }
         
         .btn-success:hover {
@@ -199,15 +238,18 @@
         }
         
         .btn-danger {
-            background: #ef4444;
-            color: white;
-            width: 36px;
-            height: 36px;
+            background: transparent;
+            color: #9ca3af;
+            width: 28px;
+            height: 28px;
             padding: 0;
+            border-radius: 6px;
+            font-size: 14px;
         }
         
         .btn-danger:hover {
-            background: #dc2626;
+            background: #fee2e2;
+            color: #ef4444;
         }
         
         .form-actions {
@@ -319,25 +361,42 @@
                 <div class="form-section">
                     <h3 class="section-title">Contract Items</h3>
 
-                    <div class="form-group items-autocomplete">
-                        <label>Product Name</label>
-                        <input type="text" id="product-search" placeholder="Search products...">
-                        <div id="suggestions" class="suggestions" style="display:none;"></div>
+                    <div class="add-item-row">
+                        <div class="form-group items-autocomplete" style="margin:0;">
+                            <label>Product Name</label>
+                            <input type="text" id="product-search" placeholder="Search products...">
+                            <div id="suggestions" class="suggestions" style="display:none;"></div>
+                        </div>
+
+                        <div class="form-group" style="margin:0;">
+                            <label>Quantity</label>
+                            <input type="number" id="product-quantity" step="0.01" value="1">
+                        </div>
+
+                        <div class="form-group" style="margin:0;">
+                            <label>Price</label>
+                            <input type="number" id="product-price" step="0.01" value="0">
+                        </div>
+
+                        <div style="padding-bottom: 0;">
+                            <button type="button" class="btn btn-success" onclick="addItem()" style="margin-top: 22px;">+ Add</button>
+                        </div>
                     </div>
 
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label>Quantity</label>
-                        <input type="number" id="product-quantity" step="0.01" value="1">
+                    <div id="items-container-wrap" style="display:none;" class="items-table-wrap">
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th>Total (with VAT)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-container"></tbody>
+                        </table>
                     </div>
-
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label>Price</label>
-                        <input type="number" id="product-price" step="0.01" value="0">
-                    </div>
-
-                    <button type="button" class="btn btn-success" onclick="addItem()">+ Add Item</button>
-
-                    <div id="items-container"></div>
                 </div>
 
                 <div class="form-actions">
@@ -421,18 +480,20 @@
         const totalPriceWithVat = totalPrice + (totalPrice * vatPercentage / 100);
 
         const container = document.getElementById('items-container');
-        const row = document.createElement('div');
+        const wrap = document.getElementById('items-container-wrap');
+        const row = document.createElement('tr');
         row.classList.add('item-row');
 
         row.innerHTML = `
-            <span>${name}</span>
-            <span>${quantity}</span>
-            <span>${price.toFixed(2)}</span>
-            <span>${totalPriceWithVat.toFixed(2)} (with VAT)</span>
-            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+            <td><span>${name}</span></td>
+            <td><span>${quantity}</span></td>
+            <td><span>${price.toFixed(2)}</span></td>
+            <td><span>${totalPriceWithVat.toFixed(2)} (with VAT)</span></td>
+            <td><button type="button" class="btn btn-danger" onclick="this.closest('tr').remove(); updateTableVisibility()">✕</button></td>
         `;
 
         container.appendChild(row);
+        wrap.style.display = 'block';
 
         searchInput.value = '';
         document.getElementById('product-quantity').value = 1;
@@ -440,10 +501,16 @@
         suggestions.style.display = 'none';
     }
 
+    function updateTableVisibility() {
+        const container = document.getElementById('items-container');
+        const wrap = document.getElementById('items-container-wrap');
+        wrap.style.display = container.querySelectorAll('tr').length > 0 ? 'block' : 'none';
+    }
+
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e){
         const container = document.getElementById('items-container');
-        const rows = container.querySelectorAll('.item-row');
+        const rows = container.querySelectorAll('tr.item-row');
         if(rows.length === 0){
             e.preventDefault();
             alert('Add at least one item!');
@@ -451,9 +518,9 @@
         }
 
         const itemsData = Array.from(rows).map(row => ({
-            name: row.querySelector('span:nth-child(1)').textContent,
-            quantity: parseFloat(row.querySelector('span:nth-child(2)').textContent),
-            price: parseFloat(row.querySelector('span:nth-child(3)').textContent)
+            name: row.querySelector('td:nth-child(1) span').textContent,
+            quantity: parseFloat(row.querySelector('td:nth-child(2) span').textContent),
+            price: parseFloat(row.querySelector('td:nth-child(3) span').textContent)
         }));
 
         let hiddenInput = document.querySelector('input[name="items_data"]');
