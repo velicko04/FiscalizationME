@@ -399,7 +399,7 @@
                                         <option value="{{ $buyer->id }}" {{ old('buyer_id') == $buyer->id ? 'selected' : '' }}>{{ $buyer->name }}</option>
                                     @endforeach
                                 </select>
-                                <button type="button" class="btn btn-outline" id="open-buyer-modal">+ Novi</button>
+                                <button type="button" class="btn btn-outline" id="open-buyer-modal">+ New</button>
                             </div>
                         </div>
 

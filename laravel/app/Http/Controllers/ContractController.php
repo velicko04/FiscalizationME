@@ -138,20 +138,24 @@ public function create()
 }
 
 
-
-    // EDIT
+  // EDIT
     public function edit($id)
     {
         $contract = Contract::with('items.product.vatRate', 'invoices')->findOrFail($id);
 
-        if ($contract->invoices()->exists()) {
-            return redirect()->route('contracts.index')
-                ->with('error', 'Ugovor se ne može mijenjati jer ima izdate račune.');
-        }
+        $companies = Company::all();
+        $buyers = Buyer::all();
+        $products = Product::with('vatRate')->get()->map(function($p) {
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'price' => $p->price,
+                'vat_rate_id' => $p->vat_rate_id,
+                'vatRate' => ['percentage' => $p->vatRate->percentage ?? 0]
+            ];
+        });
 
-        $products = Product::with('vatRate')->get();
-
-        return view('contracts.edit', compact('contract', 'products'));
+        return view('contracts.edit', compact('contract', 'companies', 'buyers', 'products'));
     }
 
     // UPDATE
@@ -159,44 +163,47 @@ public function create()
     {
         $contract = Contract::with('invoices')->findOrFail($id);
 
-        if ($contract->invoices()->exists()) {
-            return redirect()->route('contracts.index')
-                ->with('error', 'Ugovor se ne može izmijeniti jer ima izdate račune.');
-        }
-
         $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'company_id'        => 'required|exists:Company,id',
+            'buyer_id'          => 'required|exists:Buyer,id',
+            'start_date'        => 'required|date',
+            'end_date'          => 'required|date|after:start_date',
             'billing_frequency' => 'required',
-            'issue_day' => 'required|integer|min:1|max:31',
-            'status' => 'required',
-            'products' => 'required|array|min:1',
-            'products.*' => 'exists:Product,id',
-            'quantities.*' => 'required|numeric|min:1',
+            'issue_day'         => 'required|integer|min:1|max:31',
+            'status'            => 'required',
+            'items_data'        => 'required|string',
         ]);
 
-        DB::transaction(function () use ($request, $contract) {
+        $items = json_decode($request->items_data, true);
+
+        DB::transaction(function () use ($request, $contract, $items) {
 
             $contract->update([
-                'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
+                'company_id'        => $request->company_id,
+                'buyer_id'          => $request->buyer_id,
+                'start_date'        => $request->start_date,
+                'end_date'          => $request->end_date,
                 'billing_frequency' => $request->billing_frequency,
-                'issue_day' => $request->issue_day,
-                'status' => $request->status,
+                'issue_day'         => $request->issue_day,
+                'status'            => $request->status,
             ]);
 
-            // Obriši stare stavke
             $contract->items()->delete();
 
-            // Dodaj nove
-            foreach ($request->products as $index => $productId) {
-
-                $product = Product::findOrFail($productId);
+            foreach ($items as $item) {
+                $product = Product::updateOrCreate(
+                    ['name' => $item['name']],
+                    [
+                        'price'      => $item['price'],
+                        'vat_rate_id' => $item['vat_rate_id'] ?? 1,
+                        'unit'       => 'kom',
+                    ]
+                );
 
                 $contract->items()->create([
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantities[$index] ?? 1,
-                    'unit_price' => $product->price, // 🔒 sigurnosno iz baze
+                    'product_id'  => $product->id,
+                    'quantity'    => $item['quantity'],
+                    'unit_price'  => $item['price'],
                     'vat_rate_id' => $product->vat_rate_id,
                 ]);
             }
