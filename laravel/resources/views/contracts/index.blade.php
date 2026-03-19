@@ -382,7 +382,7 @@
                         <th>End Date</th>
                         <th>Status</th>
                         <th>Products</th>
-                        <th>Total (with VAT)</th>
+                        <th>Total (with PDV)</th>
                         <th>Invoices</th>
                         <th>Actions</th>
                     </tr>

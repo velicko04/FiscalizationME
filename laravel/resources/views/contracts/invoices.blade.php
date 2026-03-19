@@ -319,8 +319,8 @@
                         <th>Buyer</th>
                         <th>Seller</th>
                         <th>Issue Date</th>
-                        <th>Total (with VAT)</th>
-                        <th>Total VAT</th>
+                        <th>Total (with PDV)</th>
+                        <th>Total PDV</th>
                         <th>Payment Method</th>
                         <th>Products</th>
                         <th>Action</th>

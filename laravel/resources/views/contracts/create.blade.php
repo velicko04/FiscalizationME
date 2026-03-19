@@ -19,9 +19,7 @@
             padding: 32px;
         }
         
-        .page-header {
-            margin-bottom: 24px;
-        }
+        .page-header { margin-bottom: 24px; }
         
         .page-title {
             font-size: 28px;
@@ -42,9 +40,7 @@
             padding: 32px;
         }
         
-        .form-section {
-            margin-bottom: 32px;
-        }
+        .form-section { margin-bottom: 32px; }
         
         .section-title {
             font-size: 16px;
@@ -61,10 +57,7 @@
             gap: 20px;
         }
         
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
+        .form-group { display: flex; flex-direction: column; }
         
         label {
             font-size: 13px;
@@ -84,9 +77,7 @@
             transition: all 0.2s;
         }
         
-        input:hover, select:hover {
-            border-color: #d1d5db;
-        }
+        input:hover, select:hover { border-color: #d1d5db; }
         
         input:focus, select:focus {
             outline: none;
@@ -94,9 +85,17 @@
             box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
         
-        .items-autocomplete {
-            position: relative;
+        .buyer-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
         }
+
+        .buyer-row select {
+            flex: 1;
+        }
+
+        .items-autocomplete { position: relative; }
         
         .suggestions {
             position: absolute;
@@ -121,13 +120,8 @@
             border-bottom: 1px solid #f3f4f6;
         }
         
-        .suggestions div:last-child {
-            border-bottom: none;
-        }
-        
-        .suggestions div:hover {
-            background: #f9fafb;
-        }
+        .suggestions div:last-child { border-bottom: none; }
+        .suggestions div:hover { background: #f9fafb; }
         
         .add-item-row {
             display: grid;
@@ -159,13 +153,8 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
-        .items-table tbody tr {
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .items-table tbody tr:last-child {
-            border-bottom: none;
-        }
+        .items-table tbody tr { border-bottom: 1px solid #f3f4f6; }
+        .items-table tbody tr:last-child { border-bottom: none; }
 
         .items-table tbody td {
             padding: 10px 12px;
@@ -199,36 +188,21 @@
             gap: 8px;
         }
         
-        .btn-primary {
-            background: #6366f1;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #4f46e5;
-        }
-        
-        .btn-secondary {
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-secondary { background: white; color: #374151; border: 1px solid #e5e7eb; text-decoration: none; }
+        .btn-secondary:hover { background: #f9fafb; }
+        .btn-success { background: #10b981; color: white; height: 40px; white-space: nowrap; }
+        .btn-success:hover { background: #059669; }
+        .btn-outline {
             background: white;
-            color: #374151;
-            border: 1px solid #e5e7eb;
-            text-decoration: none;
-        }
-        
-        .btn-secondary:hover {
-            background: #f9fafb;
-        }
-        
-        .btn-success {
-            background: #10b981;
-            color: white;
+            color: #6366f1;
+            border: 1px solid #6366f1;
             height: 40px;
             white-space: nowrap;
+            flex-shrink: 0;
         }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
+        .btn-outline:hover { background: #f5f3ff; }
         
         .btn-danger {
             background: transparent;
@@ -239,11 +213,7 @@
             border-radius: 6px;
             font-size: 14px;
         }
-        
-        .btn-danger:hover {
-            background: #fee2e2;
-            color: #ef4444;
-        }
+        .btn-danger:hover { background: #fee2e2; color: #ef4444; }
         
         .form-actions {
             display: flex;
@@ -252,23 +222,135 @@
             padding-top: 24px;
             border-top: 1px solid #e5e7eb;
         }
-        
-        .form-actions .btn-primary {
-            flex: 1;
-            height: 40px;
+        .form-actions .btn-primary { flex: 1; height: 40px; }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
         }
-        
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 24px;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #9ca3af;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #374151; }
+
+        .modal-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #dc2626;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .page-container { padding: 16px; }
             .form-card { padding: 20px; }
             .form-grid { grid-template-columns: 1fr; }
             .add-item-row { grid-template-columns: 1fr; }
+            .modal-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     @include('partials.admin-navbar')
-    
+
+    {{-- MODAL ZA NOVOG BUYERA --}}
+    <div class="modal-overlay" id="buyer-modal">
+        <div class="modal">
+            <button class="modal-close" id="modal-close-btn">✕</button>
+            <h2 class="modal-title">Dodaj novog kupca</h2>
+
+            <div class="modal-error" id="modal-error"></div>
+
+            <div class="modal-grid">
+                <div class="form-group">
+                    <label>Ime / Naziv</label>
+                    <input type="text" id="b-name" placeholder="npr. Telekom CG">
+                </div>
+                <div class="form-group">
+                    <label>Tax ID Type</label>
+                    <select id="b-tax-id-type">
+                        <option value="TIN">TIN</option>
+                        <option value="ID">ID</option>
+                        <option value="PASS">PASS</option>
+                        <option value="VAT">VAT</option>
+                        <option value="TAX">TAX</option>
+                        <option value="SOC">SOC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tax ID Number (PIB)</label>
+                    <input type="text" id="b-tax-id-number" placeholder="npr. 87654321">
+                </div>
+                <div class="form-group">
+                    <label>Zemlja</label>
+                    <input type="text" id="b-country" value="Montenegro">
+                </div>
+                <div class="form-group">
+                    <label>Grad</label>
+                    <input type="text" id="b-city" placeholder="npr. Podgorica">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Adresa</label>
+                    <input type="text" id="b-address" placeholder="npr. Moskovska 29">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Odustani</button>
+                <button type="button" class="btn btn-primary" id="modal-save-btn">Sačuvaj kupca</button>
+            </div>
+        </div>
+    </div>
+
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">New Contract</h1>
@@ -311,11 +393,14 @@
 
                         <div class="form-group">
                             <label>Buyer</label>
-                            <select name="buyer_id" required>
-                                @foreach($buyers as $buyer)
-                                    <option value="{{ $buyer->id }}" {{ old('buyer_id') == $buyer->id ? 'selected' : '' }}>{{ $buyer->name }}</option>
-                                @endforeach
-                            </select>
+                            <div class="buyer-row">
+                                <select name="buyer_id" id="buyer-select" required>
+                                    @foreach($buyers as $buyer)
+                                        <option value="{{ $buyer->id }}" {{ old('buyer_id') == $buyer->id ? 'selected' : '' }}>{{ $buyer->name }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="button" class="btn btn-outline" id="open-buyer-modal">+ Novi</button>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -424,7 +509,97 @@
     var itemsDataInput = document.getElementById('items_data_input');
     var addItemBtn = document.getElementById('add-item-btn');
     var vatSelect = document.getElementById('product-vat-rate');
+    var buyerSelect = document.getElementById('buyer-select');
 
+    // ==================
+    // BUYER MODAL
+    // ==================
+    var buyerModal = document.getElementById('buyer-modal');
+
+    document.getElementById('open-buyer-modal').addEventListener('click', function() {
+        buyerModal.classList.add('show');
+    });
+
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+    buyerModal.addEventListener('click', function(e) {
+        if (e.target === buyerModal) closeModal();
+    });
+
+    function closeModal() {
+        buyerModal.classList.remove('show');
+        document.getElementById('modal-error').style.display = 'none';
+        document.getElementById('b-name').value = '';
+        document.getElementById('b-tax-id-number').value = '';
+        document.getElementById('b-country').value = 'Montenegro';
+        document.getElementById('b-city').value = '';
+        document.getElementById('b-address').value = '';
+        document.getElementById('b-tax-id-type').selectedIndex = 0;
+    }
+
+    document.getElementById('modal-save-btn').addEventListener('click', function() {
+        var name = document.getElementById('b-name').value.trim();
+        var taxIdType = document.getElementById('b-tax-id-type').value;
+        var taxIdNumber = document.getElementById('b-tax-id-number').value.trim();
+        var country = document.getElementById('b-country').value.trim();
+        var city = document.getElementById('b-city').value.trim();
+        var address = document.getElementById('b-address').value.trim();
+        var errorBox = document.getElementById('modal-error');
+
+        if (!name || !taxIdNumber || !city || !address) {
+            errorBox.textContent = 'Molimo popunite sva obavezna polja.';
+            errorBox.style.display = 'block';
+            return;
+        }
+
+        var saveBtn = document.getElementById('modal-save-btn');
+        saveBtn.textContent = 'Čuvanje...';
+        saveBtn.disabled = true;
+
+        fetch("{{ route('buyers.ajaxStore') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                name: name,
+                tax_id_type: taxIdType,
+                tax_id_number: taxIdNumber,
+                country: country,
+                city: city,
+                address: address
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Dodaj novog buyera u dropdown i selektuj ga
+                var option = document.createElement('option');
+                option.value = data.buyer.id;
+                option.textContent = data.buyer.name;
+                option.selected = true;
+                buyerSelect.appendChild(option);
+                closeModal();
+            } else {
+                errorBox.textContent = 'Greška pri čuvanju. Pokušajte ponovo.';
+                errorBox.style.display = 'block';
+            }
+        })
+        .catch(function() {
+            errorBox.textContent = 'Greška pri čuvanju. Pokušajte ponovo.';
+            errorBox.style.display = 'block';
+        })
+        .finally(function() {
+            saveBtn.textContent = 'Sačuvaj kupca';
+            saveBtn.disabled = false;
+        });
+    });
+
+    // ==================
+    // PRODUCTS AUTOCOMPLETE
+    // ==================
     searchInput.addEventListener('input', function() {
         var query = this.value.toLowerCase().trim();
         suggestionsBox.innerHTML = '';
@@ -457,12 +632,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({
-                        name: newName,
-                        price: newPrice,
-                        vat_rate_id: newVatRateId,
-                        unit: 'kom'
-                    })
+                    body: JSON.stringify({ name: newName, price: newPrice, vat_rate_id: newVatRateId, unit: 'kom' })
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
@@ -494,8 +664,6 @@
         selectedProduct = product;
         searchInput.value = product.name;
         document.getElementById('product-price').value = parseFloat(product.price).toFixed(2);
-
-        // Postavi VAT dropdown na vrijednost iz proizvoda
         for (var i = 0; i < vatSelect.options.length; i++) {
             if (parseInt(vatSelect.options[i].value) === parseInt(product.vat_rate_id)) {
                 vatSelect.selectedIndex = i;
@@ -562,7 +730,6 @@
 
     contractForm.addEventListener('submit', function(e) {
         var rows = itemsContainer.querySelectorAll('tr.item-row');
-
         if (rows.length === 0) {
             e.preventDefault();
             alert('Dodajte barem jedan proizvod.');
@@ -587,7 +754,10 @@
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') suggestionsBox.style.display = 'none';
+        if (e.key === 'Escape') {
+            suggestionsBox.style.display = 'none';
+            closeModal();
+        }
     });
     </script>
 </body>

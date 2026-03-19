@@ -6,6 +6,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\XmlController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BuyerController;
 
 // Auth rute
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
@@ -35,4 +36,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoice/{id}/fiskalizuj', [XmlController::class, 'fiskalizuj'])->name('invoice.fiskalizuj');
 
     Route::post('/products/ajax-store', [ProductController::class, 'ajaxStore'])->name('products.ajaxStore');
+    Route::post('/buyers/ajax-store', [BuyerController::class, 'ajaxStore'])->name('buyers.ajaxStore');
 });

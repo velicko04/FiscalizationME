@@ -31,7 +31,7 @@ class ContractController extends Controller
             $query->where('start_date', '>=', now()->subDays($request->range));
         }
 
-        $contracts = $query->orderBy('start_date', 'desc')->get();
+        $contracts = $query->orderBy('id', 'desc')->get();
 
         return view('contracts.index', compact('contracts'));
     }
