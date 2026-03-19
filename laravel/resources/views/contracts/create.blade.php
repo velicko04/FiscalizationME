@@ -129,14 +129,9 @@
             background: #f9fafb;
         }
         
-        .suggestions div:first-child {
-            font-weight: 600;
-            color: #6366f1;
-        }
-        
         .add-item-row {
             display: grid;
-            grid-template-columns: 1fr 100px 130px auto;
+            grid-template-columns: 1fr 80px 110px 130px auto;
             gap: 10px;
             align-items: end;
             padding: 16px;
@@ -188,8 +183,6 @@
             border-radius: 10px;
             overflow: hidden;
         }
-
-
 
         .btn {
             height: 36px;
@@ -266,21 +259,10 @@
         }
         
         @media (max-width: 768px) {
-            .page-container {
-                padding: 16px;
-            }
-            
-            .form-card {
-                padding: 20px;
-            }
-            
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .item-row {
-                grid-template-columns: 1fr;
-            }
+            .page-container { padding: 16px; }
+            .form-card { padding: 20px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .add-item-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -294,22 +276,35 @@
         </div>
 
         <div class="form-card">
-            <form method="POST" action="{{ route('contracts.store') }}">
+
+            @if ($errors->any())
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px; color: #dc2626;">
+                <strong>Greške:</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            <form id="contract-form" method="POST" action="{{ route('contracts.store') }}">
                 @csrf
+                <input type="hidden" name="items_data" id="items_data_input" value="">
 
                 <div class="form-section">
                     <h3 class="section-title">Basic Information</h3>
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Contract Number</label>
-                            <input type="text" name="contract_number" required>
+                            <input type="text" name="contract_number" value="{{ old('contract_number') }}" required>
                         </div>
 
                         <div class="form-group">
                             <label>Company</label>
                             <select name="company_id" required>
                                 @foreach($companies as $company)
-                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    <option value="{{ $company->id }}" {{ old('company_id') == $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -318,7 +313,7 @@
                             <label>Buyer</label>
                             <select name="buyer_id" required>
                                 @foreach($buyers as $buyer)
-                                    <option value="{{ $buyer->id }}">{{ $buyer->name }}</option>
+                                    <option value="{{ $buyer->id }}" {{ old('buyer_id') == $buyer->id ? 'selected' : '' }}>{{ $buyer->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -326,34 +321,34 @@
                         <div class="form-group">
                             <label>Status</label>
                             <select name="status">
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                                <option value="expired">Expired</option>
+                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="paused" {{ old('status') == 'paused' ? 'selected' : '' }}>Paused</option>
+                                <option value="expired" {{ old('status') == 'expired' ? 'selected' : '' }}>Expired</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label>Start Date</label>
-                            <input type="date" name="start_date" required>
+                            <input type="date" name="start_date" value="{{ old('start_date') }}" required>
                         </div>
 
                         <div class="form-group">
                             <label>End Date</label>
-                            <input type="date" name="end_date" required>
+                            <input type="date" name="end_date" value="{{ old('end_date') }}" required>
                         </div>
 
                         <div class="form-group">
                             <label>Billing Frequency</label>
                             <select name="billing_frequency">
-                                <option value="monthly">Monthly</option>
-                                <option value="quarterly">Quarterly</option>
-                                <option value="yearly">Yearly</option>
+                                <option value="monthly" {{ old('billing_frequency') == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                <option value="quarterly" {{ old('billing_frequency') == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                                <option value="yearly" {{ old('billing_frequency') == 'yearly' ? 'selected' : '' }}>Yearly</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label>Issue Day</label>
-                            <input type="number" name="issue_day" min="1" max="31" required>
+                            <input type="number" name="issue_day" min="1" max="31" value="{{ old('issue_day') }}" required>
                         </div>
                     </div>
                 </div>
@@ -364,22 +359,31 @@
                     <div class="add-item-row">
                         <div class="form-group items-autocomplete" style="margin:0;">
                             <label>Product Name</label>
-                            <input type="text" id="product-search" placeholder="Search products...">
+                            <input type="text" id="product-search" placeholder="Search products..." autocomplete="off">
                             <div id="suggestions" class="suggestions" style="display:none;"></div>
                         </div>
 
                         <div class="form-group" style="margin:0;">
-                            <label>Quantity</label>
-                            <input type="number" id="product-quantity" step="0.01" value="1">
+                            <label>Qty</label>
+                            <input type="number" id="product-quantity" step="0.01" value="1" min="0.01">
                         </div>
 
                         <div class="form-group" style="margin:0;">
                             <label>Price</label>
-                            <input type="number" id="product-price" step="0.01" value="0">
+                            <input type="number" id="product-price" step="0.01" value="0" min="0">
+                        </div>
+
+                        <div class="form-group" style="margin:0;">
+                            <label>VAT Stopa</label>
+                            <select id="product-vat-rate">
+                                <option value="1" data-percentage="21">Standard 21%</option>
+                                <option value="2" data-percentage="7">Reduced 7%</option>
+                                <option value="3" data-percentage="0">Exempt 0%</option>
+                            </select>
                         </div>
 
                         <div style="padding-bottom: 0;">
-                            <button type="button" class="btn btn-success" onclick="addItem()" style="margin-top: 22px;">+ Add</button>
+                            <button type="button" id="add-item-btn" class="btn btn-success" style="margin-top: 22px;">+ Add</button>
                         </div>
                     </div>
 
@@ -390,6 +394,7 @@
                                     <th>Product</th>
                                     <th>Qty</th>
                                     <th>Price</th>
+                                    <th>VAT</th>
                                     <th>Total (with VAT)</th>
                                     <th></th>
                                 </tr>
@@ -401,146 +406,188 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save Contract</button>
-                    <a href="{{ route('contracts.index') }}" class="btn btn-secondary">
-                        Cancel
-                    </a>
+                    <a href="{{ route('contracts.index') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-    let products = @json($products); 
-    const searchInput = document.getElementById('product-search');
-    const suggestions = document.getElementById('suggestions');
+    var products = @json($products);
+    var selectedProduct = null;
+
+    var searchInput = document.getElementById('product-search');
+    var suggestionsBox = document.getElementById('suggestions');
+    var itemsContainer = document.getElementById('items-container');
+    var itemsWrap = document.getElementById('items-container-wrap');
+    var contractForm = document.getElementById('contract-form');
+    var itemsDataInput = document.getElementById('items_data_input');
+    var addItemBtn = document.getElementById('add-item-btn');
+    var vatSelect = document.getElementById('product-vat-rate');
 
     searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase();
-        suggestions.innerHTML = '';
-        if (!query) return suggestions.style.display='none';
+        var query = this.value.toLowerCase().trim();
+        suggestionsBox.innerHTML = '';
+        selectedProduct = null;
 
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+        if (!query) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
 
-        if(filtered.length === 0){
-            const div = document.createElement('div');
-            div.textContent = `Add new product: "${searchInput.value}"`;
+        var filtered = products.filter(function(p) {
+            return p.name.toLowerCase().indexOf(query) !== -1;
+        });
+
+        if (filtered.length === 0) {
+            var div = document.createElement('div');
+            div.textContent = '+ Dodaj novi: "' + searchInput.value + '"';
             div.style.fontWeight = 'bold';
-            div.addEventListener('click', async () => {
-                const res = await fetch("{{ route('products.ajaxStore') }}", {
+            div.style.color = '#6366f1';
+            div.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                var newName = searchInput.value.trim();
+                var newPrice = parseFloat(document.getElementById('product-price').value) || 0;
+                var selectedVatOption = vatSelect.options[vatSelect.selectedIndex];
+                var newVatRateId = parseInt(selectedVatOption.value);
+
+                fetch("{{ route('products.ajaxStore') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
-                        name: searchInput.value,
-                        price: parseFloat(document.getElementById('product-price').value),
-                        vat_rate_id: 1,
+                        name: newName,
+                        price: newPrice,
+                        vat_rate_id: newVatRateId,
                         unit: 'kom'
                     })
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        products.push(data.product);
+                        selectProduct(data.product);
+                    }
                 });
-                const data = await res.json();
-                if(data.success){
-                    products.push(data.product);
-                    selectProduct(data.product);
-                    suggestions.style.display = 'none';
-                }
+                suggestionsBox.style.display = 'none';
             });
-            suggestions.appendChild(div);
+            suggestionsBox.appendChild(div);
         } else {
-            filtered.forEach(p => {
-                const div = document.createElement('div');
-                div.textContent = `${p.name} (VAT ${p.vatRate.percentage}%)`;
-                div.dataset.id = p.id;
-                div.dataset.price = p.price;
-                div.dataset.vat = p.vatRate.percentage;
-                div.dataset.name = p.name;
-                div.addEventListener('click', () => selectProduct(p));
-                suggestions.appendChild(div);
+            filtered.forEach(function(p) {
+                var div = document.createElement('div');
+                div.textContent = p.name + ' (VAT ' + p.vatRate.percentage + '%)';
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    selectProduct(p);
+                    suggestionsBox.style.display = 'none';
+                });
+                suggestionsBox.appendChild(div);
             });
         }
-        suggestions.style.display = 'block';
+
+        suggestionsBox.style.display = 'block';
     });
 
     function selectProduct(product) {
+        selectedProduct = product;
         searchInput.value = product.name;
-        document.getElementById('product-price').value = product.price;
-        searchInput.dataset.vat = product.vatRate.percentage;
+        document.getElementById('product-price').value = parseFloat(product.price).toFixed(2);
+
+        // Postavi VAT dropdown na vrijednost iz proizvoda
+        for (var i = 0; i < vatSelect.options.length; i++) {
+            if (parseInt(vatSelect.options[i].value) === parseInt(product.vat_rate_id)) {
+                vatSelect.selectedIndex = i;
+                break;
+            }
+        }
     }
 
-    function addItem() {
-        const name = searchInput.value.trim();
-        const quantity = parseFloat(document.getElementById('product-quantity').value) || 1;
-        const price = parseFloat(document.getElementById('product-price').value) || 0;
-        const vatPercentage = parseFloat(searchInput.dataset.vat) || 0;
+    addItemBtn.addEventListener('click', function() {
+        var name = searchInput.value.trim();
+        var quantity = parseFloat(document.getElementById('product-quantity').value) || 1;
+        var price = parseFloat(document.getElementById('product-price').value) || 0;
 
-        if (!name) return alert('Enter product name');
+        if (!name) {
+            alert('Unesite naziv proizvoda.');
+            return;
+        }
 
-        const totalPrice = quantity * price;
-        const totalPriceWithVat = totalPrice + (totalPrice * vatPercentage / 100);
+        var selectedVatOption = vatSelect.options[vatSelect.selectedIndex];
+        var vatPercentage = selectedProduct
+            ? parseFloat(selectedProduct.vatRate.percentage)
+            : parseFloat(selectedVatOption.dataset.percentage);
+        var vatRateId = selectedProduct
+            ? (parseInt(selectedProduct.vat_rate_id) || 1)
+            : parseInt(selectedVatOption.value);
 
-        const container = document.getElementById('items-container');
-        const wrap = document.getElementById('items-container-wrap');
-        const row = document.createElement('tr');
+        var totalPrice = quantity * price;
+        var totalPriceWithVat = totalPrice + (totalPrice * vatPercentage / 100);
+
+        var row = document.createElement('tr');
         row.classList.add('item-row');
+        row.dataset.name = name;
+        row.dataset.quantity = quantity;
+        row.dataset.price = price;
+        row.dataset.vatRateId = vatRateId;
 
-        row.innerHTML = `
-            <td><span>${name}</span></td>
-            <td><span>${quantity}</span></td>
-            <td><span>${price.toFixed(2)}</span></td>
-            <td><span>${totalPriceWithVat.toFixed(2)} (with VAT)</span></td>
-            <td><button type="button" class="btn btn-danger" onclick="this.closest('tr').remove(); updateTableVisibility()">✕</button></td>
-        `;
+        row.innerHTML =
+            '<td><span>' + name + '</span></td>' +
+            '<td><span>' + quantity + '</span></td>' +
+            '<td><span>' + price.toFixed(2) + '</span></td>' +
+            '<td><span>' + vatPercentage + '%</span></td>' +
+            '<td><span>' + totalPriceWithVat.toFixed(2) + '</span></td>' +
+            '<td><button type="button" class="btn btn-danger" onclick="removeItem(this)">✕</button></td>';
 
-        container.appendChild(row);
-        wrap.style.display = 'block';
+        itemsContainer.appendChild(row);
+        updateTableVisibility();
 
         searchInput.value = '';
         document.getElementById('product-quantity').value = 1;
         document.getElementById('product-price').value = 0;
-        suggestions.style.display = 'none';
+        vatSelect.selectedIndex = 0;
+        selectedProduct = null;
+        suggestionsBox.style.display = 'none';
+    });
+
+    function removeItem(btn) {
+        btn.closest('tr').remove();
+        updateTableVisibility();
     }
 
     function updateTableVisibility() {
-        const container = document.getElementById('items-container');
-        const wrap = document.getElementById('items-container-wrap');
-        wrap.style.display = container.querySelectorAll('tr').length > 0 ? 'block' : 'none';
+        itemsWrap.style.display = itemsContainer.querySelectorAll('tr.item-row').length > 0 ? 'block' : 'none';
     }
 
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(e){
-        const container = document.getElementById('items-container');
-        const rows = container.querySelectorAll('tr.item-row');
-        if(rows.length === 0){
+    contractForm.addEventListener('submit', function(e) {
+        var rows = itemsContainer.querySelectorAll('tr.item-row');
+
+        if (rows.length === 0) {
             e.preventDefault();
-            alert('Add at least one item!');
+            alert('Dodajte barem jedan proizvod.');
             return;
         }
 
-        const itemsData = Array.from(rows).map(row => ({
-            name: row.querySelector('td:nth-child(1) span').textContent,
-            quantity: parseFloat(row.querySelector('td:nth-child(2) span').textContent),
-            price: parseFloat(row.querySelector('td:nth-child(3) span').textContent)
-        }));
+        var itemsData = [];
+        rows.forEach(function(row) {
+            itemsData.push({
+                name: row.dataset.name,
+                quantity: parseFloat(row.dataset.quantity),
+                price: parseFloat(row.dataset.price),
+                vat_rate_id: parseInt(row.dataset.vatRateId) || 1
+            });
+        });
 
-        let hiddenInput = document.querySelector('input[name="items_data"]');
-        if(!hiddenInput){
-            hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'items_data';
-            form.appendChild(hiddenInput);
-        }
-        hiddenInput.value = JSON.stringify(itemsData);
+        itemsDataInput.value = JSON.stringify(itemsData);
     });
 
-    document.addEventListener('click', function(e) {
-        if (!suggestions.contains(e.target) && e.target !== searchInput) suggestions.style.display = 'none';
-    });
     searchInput.addEventListener('blur', function() {
-        setTimeout(() => { suggestions.style.display = 'none'; }, 150);
+        setTimeout(function() { suggestionsBox.style.display = 'none'; }, 200);
     });
-    searchInput.addEventListener('keydown', function(e) {
-        if(e.key === 'Escape') suggestions.style.display = 'none';
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') suggestionsBox.style.display = 'none';
     });
     </script>
 </body>

@@ -36,6 +36,24 @@ class ContractController extends Controller
         return view('contracts.index', compact('contracts'));
     }
 
+    // CREATE FORM
+public function create()
+{
+    $companies = Company::all();
+    $buyers = Buyer::all();
+    $products = Product::with('vatRate')->get()->map(function($p){
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'price' => $p->price,
+            'vat_rate_id' => $p->vat_rate_id,
+            'vatRate' => ['percentage' => $p->vatRate->percentage ?? 0]
+        ];
+    });
+
+    return view('contracts.create', compact('companies', 'buyers', 'products'));
+}
+
     // INVOICES PO UGOVORU
     public function invoices($id, Request $request)
 {
