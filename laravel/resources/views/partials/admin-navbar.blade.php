@@ -356,6 +356,9 @@
             <a href="{{ route('invoices.logs') }}" class="{{ request()->routeIs('invoices.logs') ? 'active' : '' }}">
               Fiscal Logs
             </a>
+            <a href="{{ route('companies.index') }}" class="{{ request()->routeIs('companies.*') ? 'active' : '' }}">
+                Companies
+            </a>
         </div>
     </div>
     
