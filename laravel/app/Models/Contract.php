@@ -22,6 +22,8 @@ class Contract extends Model
         'issue_day',
         'status',
         'created_at',
+        'default_type_of_invoice',
+        'default_payment_method',
     ];
 
     protected $casts = [

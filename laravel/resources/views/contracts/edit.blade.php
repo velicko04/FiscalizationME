@@ -301,6 +301,25 @@
                             <label>Issue Day</label>
                             <input type="number" name="issue_day" min="1" max="31" value="{{ $contract->issue_day }}" required>
                         </div>
+                        <div class="form-group">
+                            <label>Type of Invoice</label>
+                            <select name="default_type_of_invoice">
+                                <option value="NONCASH" {{ $contract->default_type_of_invoice == 'NONCASH' ? 'selected' : '' }}>NONCASH</option>
+                                <option value="CASH" {{ $contract->default_type_of_invoice == 'CASH' ? 'selected' : '' }}>CASH</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select name="default_payment_method">
+                                <option value="ACCOUNT" {{ $contract->default_payment_method == 'ACCOUNT' ? 'selected' : '' }}>ACCOUNT</option>
+                                <option value="CARD" {{ $contract->default_payment_method == 'CARD' ? 'selected' : '' }}>CARD</option>
+                                <option value="BANKNOTE" {{ $contract->default_payment_method == 'BANKNOTE' ? 'selected' : '' }}>BANKNOTE</option>
+                                <option value="OTHER" {{ $contract->default_payment_method == 'OTHER' ? 'selected' : '' }}>OTHER</option>
+                                <option value="VOUCHER" {{ $contract->default_payment_method == 'VOUCHER' ? 'selected' : '' }}>VOUCHER</option>
+                                <option value="COMPENSATION" {{ $contract->default_payment_method == 'COMPENSATION' ? 'selected' : '' }}>COMPENSATION</option>
+                            </select>
+                        </div>
 
                     </div>
                 </div>
@@ -316,7 +335,7 @@
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>Qty</label>
-                            <input type="number" id="product-quantity" step="0.01" value="1" min="0.01">
+                            <input type="number" id="product-quantity" step="1" value="1" min="1">
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>Price</label>

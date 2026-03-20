@@ -76,18 +76,18 @@ class GenerateContractInvoices extends Command
                 $invoiceNumber = "{$orderNumber}/{$currentYear}/{$buCode}/{$enuCode}";
 
                 // Uzmi prvog korisnika kompanije
-                $userId = $contract->company->users->first()->id ?? 1;
+                $userId = $contract->company->users()->where('is_active', true)->first()->id ?? 1;
 
                 // Kreiraj fakturu
                 $invoice = Invoice::create([
                     'invoice_number'          => $invoiceNumber,
                     'order_number'            => $orderNumber,
                     'invoice_type'            => 'INVOICE',
-                    'type_of_invoice'         => 'NONCASH',
+                    'type_of_invoice'     => $contract->default_type_of_invoice ?? 'NONCASH',
                     'issued_at'               => $today,
                     'tax_period'              => $today->format('m/Y'),
                     'total_price_without_vat' => $totalWithoutVat,
-                    'payment_method_type'     => 'CARD',
+                    'payment_method_type' => $contract->default_payment_method ?? 'ACCOUNT',
                     'total_vat_amount'        => $totalVat,
                     'total_price_to_pay'      => $totalWithVat,
                     'company_id'              => $contract->company_id,

@@ -111,6 +111,8 @@ public function create()
             'billing_frequency' => $request->billing_frequency,
             'issue_day' => $request->issue_day,
             'status' => $request->status,
+            'default_type_of_invoice' => $request->default_type_of_invoice,
+            'default_payment_method'  => $request->default_payment_method,
         ]);
 
         foreach ($items as $item) {
