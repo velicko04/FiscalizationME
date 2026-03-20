@@ -219,7 +219,7 @@
             </div>
             @endif
 
-            <form method="POST" action="{{ route('companies.update', $company->id) }}">
+            <form id="company-form" method="POST" action="{{ route('companies.update', $company->id) }}">
                 @csrf
                 @method('PUT')
 
@@ -288,11 +288,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <a href="{{ route('companies.index') }}" class="btn btn-secondary">Cancel</a>
-                </div>
             </form>
         </div>
 
@@ -353,11 +348,16 @@
                     </table>
                 </div>
                 @else
-                <div style="padding: 40px; text-align: center; color: #6b7280; font-size: 14px;">
-                    No operators found. Add the first operator.
+                <div style="padding: 24px; text-align: center; color: #9ca3af; font-size: 13px; border: 1px dashed #e5e7eb; border-radius: 10px; margin-top: 16px;">
+                    Nema dodanih operatora. Dodajte barem jednog operatora.
                 </div>
                 @endif
             </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 0;">
+            <button type="submit" form="company-form" class="btn btn-primary">Save Changes</button>
+            <a href="{{ route('companies.index') }}" class="btn btn-secondary">Cancel</a>
         </div>
 
     </div>

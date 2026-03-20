@@ -247,7 +247,7 @@
                                 </button>
                             @else
                                 <button onclick="fiskalizuj({{ $invoice->id }}, this)" class="btn btn-success">
-                                    Fiscalize
+                                    Fiskalizuj
                                 </button>
                             @endif
                         </td>
