@@ -103,6 +103,7 @@ class XmlController extends Controller
 
         $responseXml = $response['body'] ?? null;
         $status = $response['status'] == 200 ? 'SUCCESS' : 'ERROR';
+        \Log::info('Response XML', ['responseXml' => $responseXml, 'status' => $status]);
 
         FiscalLog::create([
             'invoice_id' => $invoiceId,
