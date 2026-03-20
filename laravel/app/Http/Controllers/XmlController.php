@@ -110,7 +110,7 @@ class XmlController extends Controller
             'request_xml' => $requestXml,
             'response_xml' => $responseXml,
             'status' => $status,
-            'error_message' => $status === 'ERROR' ? $responseXml : null,
+            'error_message' => $responseXml,
         ]);
 
         \Log::info('=== FISKALIZACIJA END ===', [
