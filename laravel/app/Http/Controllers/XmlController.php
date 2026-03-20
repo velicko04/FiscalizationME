@@ -300,12 +300,11 @@ class XmlController extends Controller
         $rightToken = strtolower((string) ($invoice->company->enu_code ?? ''));
         $rawInvNum = (string) ($invoice->invoice_number ?? '');
 
-        if (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}\/[1-9][0-9]{0,14}\/[0-9]{4}\/[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', strtolower($rawInvNum))) {
+       if (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}\/[1-9][0-9]{0,14}\/[0-9]{4}\/[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', strtolower($rawInvNum))) {
             $dto->invoice_number = strtolower($rawInvNum);
-        } elseif (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', $leftToken) && preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', $rightToken)) {
-            $dto->invoice_number = sprintf('%s/%d/%s/%s', $leftToken, max(1, $dto->orderNumber), $year, $rightToken);
         } else {
-            $dto->invoice_number = $rawInvNum;
+            // Uvijek generiši ispravan format: bu_code/order_num/year/enu_code
+            $dto->invoice_number = sprintf('%s/%d/%s/%s', $leftToken, max(1, $dto->orderNumber), $year, $rightToken);
         }
 
         $dto->user = $invoice->user;
