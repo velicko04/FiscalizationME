@@ -19,9 +19,7 @@
             padding: 32px;
         }
         
-        .page-header {
-            margin-bottom: 16px;
-        }
+        .page-header { margin-bottom: 16px; }
         
         .page-title {
             font-size: 28px;
@@ -30,10 +28,7 @@
             margin-bottom: 8px;
         }
         
-        .page-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-        }
+        .page-subtitle { font-size: 14px; color: #6b7280; }
         
         .info-card {
             background: white;
@@ -45,232 +40,122 @@
             gap: 48px;
         }
         
-        .info-item {
-            font-size: 14px;
-            color: #6b7280;
-        }
+        .info-item { font-size: 14px; color: #6b7280; }
+        .info-item strong { color: #111827; font-weight: 600; }
         
-        .info-item strong {
-            color: #111827;
-            font-weight: 600;
-        }
-        
-        .tabs-container {
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 24px;
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 32px;
-        }
-        
+        .tabs-container { border-bottom: 1px solid #e5e7eb; margin-bottom: 24px; }
+        .tabs { display: flex; gap: 32px; }
         .tab {
-            padding: 12px 0;
-            font-size: 14px;
-            font-weight: 500;
-            color: #6b7280;
-            text-decoration: none;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            padding: 12px 0; font-size: 14px; font-weight: 500; color: #6b7280;
+            text-decoration: none; border-bottom: 2px solid transparent; transition: all 0.2s;
         }
-        
-        .tab:hover {
-            color: #111827;
-        }
-        
-        .tab.active {
-            color: #6366f1;
-            border-bottom-color: #6366f1;
-        }
+        .tab:hover { color: #111827; }
+        .tab.active { color: #6366f1; border-bottom-color: #6366f1; }
         
         .controls-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-            flex-wrap: wrap;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
         }
         
-        .date-filters {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex: 1;
-        }
+        .date-filters { display: flex; gap: 8px; align-items: center; flex: 1; }
         
-        .date-filters select,
-        .date-filters input {
-            height: 36px;
-            padding: 0 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 13px;
-            background: white;
-            color: #374151;
-        }
-        
-        .date-filters select:focus,
-        .date-filters input:focus {
-            outline: none;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        .date-filters select, .date-filters input {
+            height: 36px; padding: 0 12px; border: 1px solid #e5e7eb;
+            border-radius: 8px; font-size: 13px; background: white; color: #374151;
         }
         
         .btn {
-            height: 36px;
-            padding: 0 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            height: 36px; padding: 0 16px; border-radius: 8px; font-size: 13px;
+            font-weight: 500; cursor: pointer; transition: all 0.2s; border: none;
+            display: inline-flex; align-items: center; gap: 8px;
         }
-        
-        .btn-primary {
-            background: #6366f1;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #4f46e5;
-        }
-        
-        .btn-secondary {
-            background: white;
-            color: #374151;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .btn-secondary:hover {
-            background: #f9fafb;
-        }
-        
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-secondary { background: white; color: #374151; border: 1px solid #e5e7eb; }
+        .btn-secondary:hover { background: #f9fafb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-outline { background: white; color: #6366f1; border: 1px solid #6366f1; }
+        .btn-outline:hover { background: #f5f3ff; }
         
         .table-card {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
+            background: white; border-radius: 12px;
+            border: 1px solid #e5e7eb; overflow: hidden;
         }
         
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        thead {
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
         thead th {
-            padding: 12px 16px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            padding: 12px 16px; text-align: left; font-size: 12px;
+            font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;
         }
+        tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
+        tbody tr:hover { background: #f9fafb; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody td { padding: 16px; font-size: 14px; color: #374151; vertical-align: top; }
+        tbody td:first-child { font-weight: 600; color: #111827; }
         
-        tbody tr {
-            border-bottom: 1px solid #f3f4f6;
-            transition: background 0.2s;
+        .product-list { list-style: none; padding: 0; margin: 0; }
+        .product-list li { padding: 4px 0; font-size: 13px; color: #6b7280; }
+        
+        .badge {
+            display: inline-flex; align-items: center; padding: 3px 10px;
+            border-radius: 999px; font-size: 12px; font-weight: 500;
         }
-        
-        tbody tr:hover {
-            background: #f9fafb;
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-gray { background: #f3f4f6; color: #6b7280; }
+
+        .empty-state { padding: 80px 20px; text-align: center; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state p { font-size: 16px; color: #6b7280; }
+
+        /* QR Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; display: none; align-items: center; justify-content: center;
         }
-        
-        tbody tr:last-child {
-            border-bottom: none;
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white; border-radius: 12px; padding: 32px; width: 100%;
+            max-width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            position: relative; text-align: center;
         }
-        
-        tbody td {
-            padding: 16px;
-            font-size: 14px;
-            color: #374151;
-            vertical-align: top;
+        .modal-title { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 16px; }
+        .modal-subtitle { font-size: 12px; color: #6b7280; margin-bottom: 20px; }
+        .modal-close {
+            position: absolute; top: 12px; right: 16px; background: none;
+            border: none; font-size: 20px; color: #9ca3af; cursor: pointer;
         }
-        
-        tbody td:first-child {
-            font-weight: 600;
-            color: #111827;
+        .modal-close:hover { color: #374151; }
+        .qr-image { width: 200px; height: 200px; margin: 0 auto 16px; display: block; }
+        .fic-code {
+            font-size: 11px; color: #6b7280; word-break: break-all;
+            background: #f9fafb; padding: 8px; border-radius: 6px; margin-top: 12px;
         }
-        
-        .product-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .product-list li {
-            padding: 4px 0;
-            font-size: 13px;
-            color: #6b7280;
-        }
-        
-        .empty-state {
-            padding: 80px 20px;
-            text-align: center;
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        
-        .empty-state p {
-            font-size: 16px;
-            color: #6b7280;
-        }
-        
+
         @media (max-width: 1024px) {
-            .page-container {
-                padding: 16px;
-            }
-            
-            .info-card {
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .controls-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .date-filters {
-                flex-direction: column;
-            }
-            
-            .table-card {
-                overflow-x: auto;
-            }
-            
-            table {
-                min-width: 1000px;
-            }
+            .page-container { padding: 16px; }
+            .info-card { flex-direction: column; gap: 12px; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
+            .date-filters { flex-direction: column; }
+            .table-card { overflow-x: auto; }
+            table { min-width: 1000px; }
         }
     </style>
 </head>
 <body>
     @include('partials.admin-navbar')
+
+    {{-- QR KOD MODAL --}}
+    <div class="modal-overlay" id="qr-modal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeQrModal()">✕</button>
+            <h2 class="modal-title">QR Kod Fakture</h2>
+            <p class="modal-subtitle">Skenirajte za provjeru na portalu poreske</p>
+            <img id="qr-image" class="qr-image" src="" alt="QR Kod">
+            <div class="fic-code" id="fic-display"></div>
+        </div>
+    </div>
     
     <div class="page-container">
         <div class="page-header">
@@ -301,10 +186,8 @@
                     <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
                     <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
                 </select>
-                
                 <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
                 <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
-                
                 <button type="submit" class="btn btn-secondary">Filter</button>
             </form>
         </div>
@@ -323,6 +206,7 @@
                         <th>Total PDV</th>
                         <th>Payment Method</th>
                         <th>Products</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -350,9 +234,22 @@
                             </ul>
                         </td>
                         <td>
-                            <button onclick="fiskalizuj({{ $invoice->id }})" class="btn btn-success">
-                                Fiscalize
-                            </button>
+                            @if($invoice->fic)
+                                <span class="badge badge-green">✓ Fiskalizovan</span>
+                            @else
+                                <span class="badge badge-gray">Nije fiskalizovan</span>
+                            @endif
+                        </td>
+                        <td style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            @if($invoice->fic)
+                                <button onclick="showQr({{ $invoice->id }}, '{{ $invoice->fic }}')" class="btn btn-outline">
+                                    QR
+                                </button>
+                            @else
+                                <button onclick="fiskalizuj({{ $invoice->id }}, this)" class="btn btn-success">
+                                    Fiscalize
+                                </button>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -370,7 +267,10 @@
     </div>
 
     <script>
-    function fiskalizuj(invoiceId) {
+    function fiskalizuj(invoiceId, btn) {
+        btn.textContent = 'Slanje...';
+        btn.disabled = true;
+
         fetch('/invoice/' + invoiceId + '/fiskalizuj', {
             method: 'POST',
             headers: {
@@ -386,19 +286,46 @@
             try {
                 data = JSON.parse(text);
             } catch (e) {
-                console.error('Invalid JSON:', text);
-                alert('Invalid response from server. Check console for details.');
+                alert('Invalid response from server.');
+                btn.textContent = 'Fiscalize';
+                btn.disabled = false;
                 return;
             }
 
-            console.log('Fiscalization response:', data);
-            alert(`Status: ${data.status}\nTax authority response:\n${data.body}`);
+            if (data.status === 200) {
+                // Reload stranice da se prikaže novi status
+                window.location.reload();
+            } else {
+                alert('Greška: ' + data.body);
+                btn.textContent = 'Fiscalize';
+                btn.disabled = false;
+            }
         })
         .catch(err => {
-            console.error('Fetch error:', err);
-            alert('Error sending request: ' + err);
+            alert('Greška: ' + err);
+            btn.textContent = 'Fiscalize';
+            btn.disabled = false;
         });
     }
+
+    function showQr(invoiceId, fic) {
+        document.getElementById('qr-image').src = '/invoice/' + invoiceId + '/qrcode';
+        document.getElementById('fic-display').textContent = 'FIC: ' + fic;
+        document.getElementById('qr-modal').classList.add('show');
+    }
+
+    function closeQrModal() {
+        document.getElementById('qr-modal').classList.remove('show');
+        document.getElementById('qr-image').src = '';
+    }
+
+    document.getElementById('qr-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeQrModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeQrModal();
+    });
     </script>
 </body>
 </html>

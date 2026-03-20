@@ -47,4 +47,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/companies/{companyId}/operators', [OperatorController::class, 'store'])->name('operators.store');
     Route::put('/operators/{id}', [OperatorController::class, 'update'])->name('operators.update');
     Route::delete('/operators/{id}', [OperatorController::class, 'destroy'])->name('operators.destroy');
+
+    Route::get('/invoice/{id}/qrcode', [XmlController::class, 'qrCode'])->name('invoice.qrcode');
 });

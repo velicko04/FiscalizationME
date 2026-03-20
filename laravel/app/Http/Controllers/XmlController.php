@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use App\Models\FiscalLog;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class XmlController extends Controller
 {
@@ -103,7 +104,19 @@ class XmlController extends Controller
 
         $responseXml = $response['body'] ?? null;
         $status = $response['status'] == 200 ? 'SUCCESS' : 'ERROR';
-        \Log::info('Response XML', ['responseXml' => $responseXml, 'status' => $status]);
+
+        // Izvuci FIC i sačuvaj u Invoice
+        if ($status === 'SUCCESS' && $responseXml) {
+            $dom = new \DOMDocument();
+            $dom->loadXML($responseXml);
+            $xpath = new \DOMXPath($dom);
+            $xpath->registerNamespace('ns', 'https://efi.tax.gov.me/fs/schema');
+            $ficNodes = $xpath->query('//ns:FIC');
+            if ($ficNodes->length > 0) {
+                $fic = (string) $ficNodes->item(0)->nodeValue;
+                $invoice->update(['fic' => $fic]);
+            }
+        }
 
         FiscalLog::create([
             'invoice_id' => $invoiceId,
@@ -127,6 +140,26 @@ class XmlController extends Controller
             'trace' => $e->getTraceAsString()
         ]);
     }
+}
+
+    public function qrCode($invoiceId)
+{
+    $invoice = Invoice::with('company')->findOrFail($invoiceId);
+
+    $url = 'https://efitest.tax.gov.me/ic/#/verify?' . http_build_query([
+        'iic'  => $invoice->iic,
+        'tin'  => $invoice->company->tax_id_number,
+        'crtd' => $invoice->issued_at->format('Y-m-d\TH:i:sP'),
+        'ord'  => $invoice->order_number,
+        'bu'   => $invoice->company->business_unit_code,
+        'cr'   => $invoice->company->enu_code,
+        'sw'   => $invoice->company->software_code,
+        'prc'  => number_format($invoice->total_price_to_pay, 2, '.', ''),
+    ]);
+
+    $qr = QrCode::format('svg')->size(200)->generate($url);
+
+    return response($qr)->header('Content-Type', 'image/svg+xml');
 }
     
     protected function generateIICAndSignature($invoice, $certPath, $password)

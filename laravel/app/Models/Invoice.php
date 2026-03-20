@@ -35,6 +35,7 @@ class Invoice extends Model
         'user_id',
         'contract_id',
         'created_at',
+        'fic',
     ];
 
     protected $casts = [

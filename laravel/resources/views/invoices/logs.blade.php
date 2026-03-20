@@ -304,7 +304,7 @@
                     <tr>
                         <th>Invoice Number</th>
                         <th>Status</th>
-                        <th>Error Message</th>
+                        <th>Message</th>
                         <th>Date</th>
                     </tr>
                 </thead>
