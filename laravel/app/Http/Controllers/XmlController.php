@@ -56,7 +56,7 @@ class XmlController extends Controller
                 'request_xml' => null,
                 'response_xml' => null,
                 'status' => 'ERROR',
-                'error_message' => $errorMessage,
+                'error_message' => $responseXml,
             ]);
 
             return response()->json([
