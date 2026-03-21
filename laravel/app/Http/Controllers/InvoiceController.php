@@ -16,7 +16,8 @@ class InvoiceController extends Controller
         'company',
         'buyer',
         'user',
-        'items.product.vatRate'
+        'items.product.vatRate',
+        'fiscalLogs'
     ]);
 
     // LAST X DAYS FILTER
