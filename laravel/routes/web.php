@@ -9,6 +9,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\StornoController;
+
 // Auth rute
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -49,4 +51,6 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/operators/{id}', [OperatorController::class, 'destroy'])->name('operators.destroy');
 
     Route::get('/invoice/{id}/qrcode', [XmlController::class, 'qrCode'])->name('invoice.qrcode');
+    
+    Route::post('/invoice/{id}/storno', [StornoController::class, 'store'])->name('invoice.storno');
 });

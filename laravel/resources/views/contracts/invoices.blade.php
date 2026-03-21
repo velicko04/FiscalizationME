@@ -241,10 +241,17 @@
                             @endif
                         </td>
                         <td style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            @if($invoice->fic)
+                           @if($invoice->fic)
                                 <button onclick="showQr({{ $invoice->id }}, '{{ $invoice->fic }}')" class="btn btn-outline">
                                     QR
                                 </button>
+                                @if(!$invoice->correctiveInvoices->count())
+                                    <button onclick="storno({{ $invoice->id }}, this)" class="btn" style="background:#ef4444;color:white;">
+                                        Storno
+                                    </button>
+                                @else
+                                    <span class="badge badge-gray">Stornirano</span>
+                                @endif
                             @else
                                 <button onclick="fiskalizuj({{ $invoice->id }}, this)" class="btn btn-success">
                                     Fiskalizuj
@@ -326,6 +333,39 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeQrModal();
     });
+
+    function storno(invoiceId, btn) {
+    if (!confirm('Jeste li sigurni da želite stornirati ovaj račun?')) return;
+
+    btn.textContent = 'Slanje...';
+    btn.disabled = true;
+
+    fetch('/invoice/' + invoiceId + '/storno', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(async response => {
+        const data = await response.json();
+        if (data.status === 200) {
+            alert(data.body);
+            window.location.reload();
+        } else {
+            alert('Greška: ' + data.body);
+            btn.textContent = 'Storno';
+            btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert('Greška: ' + err);
+        btn.textContent = 'Storno';
+        btn.disabled = false;
+    });
+}
     </script>
 </body>
 </html>

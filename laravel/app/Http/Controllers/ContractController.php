@@ -60,7 +60,7 @@ public function create()
     $contract = Contract::with('company', 'buyer')->findOrFail($id);
 
     $query = Invoice::where('contract_id', $id)
-        ->with('company', 'buyer', 'user', 'items.product.vatRate');
+        ->with('company', 'buyer', 'user', 'items.product.vatRate', 'correctiveInvoices');
 
     // Filter po range
     if ($request->filled('range')) {
