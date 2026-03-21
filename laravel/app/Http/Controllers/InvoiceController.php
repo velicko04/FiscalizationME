@@ -63,4 +63,13 @@ class InvoiceController extends Controller
     return view('invoices.logs', compact('logs'));
 }
 
+public function invoiceLogs($id)
+{
+    $logs = FiscalLog::where('invoice_id', $id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($logs);
+}
+
 }

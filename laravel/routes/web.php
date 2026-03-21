@@ -53,4 +53,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/invoice/{id}/qrcode', [XmlController::class, 'qrCode'])->name('invoice.qrcode');
     
     Route::post('/invoice/{id}/storno', [StornoController::class, 'store'])->name('invoice.storno');
+
+    Route::get('/invoice/{id}/logs', [InvoiceController::class, 'invoiceLogs'])->name('invoice.logs');
 });

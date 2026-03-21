@@ -59,9 +59,8 @@ public function create()
 {
     $contract = Contract::with('company', 'buyer')->findOrFail($id);
 
-    $query = Invoice::where('contract_id', $id)
-        ->with('company', 'buyer', 'user', 'items.product.vatRate', 'correctiveInvoices');
-
+   $query = Invoice::where('contract_id', $id)
+    ->with('company', 'buyer', 'user', 'items.product.vatRate', 'correctiveInvoices', 'fiscalLogs');
     // Filter po range
     if ($request->filled('range')) {
         $query->where('issued_at', '>=', now()->subDays($request->range));
