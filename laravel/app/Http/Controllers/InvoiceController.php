@@ -20,14 +20,29 @@ class InvoiceController extends Controller
         'fiscalLogs'
     ]);
 
-    // LAST X DAYS FILTER
+    // RANGE FILTER (All time, Last 7/30/90 days)
     if ($request->filled('range')) {
         $query->where('issued_at', '>=', now()->subDays($request->range));
     }
 
-    // CUSTOM DATE RANGE
-    if ($request->filled('from') && $request->filled('to')) {
-        $query->whereBetween('issued_at', [$request->from, $request->to]);
+    // STATUS FILTER
+    if ($request->filled('status')) {
+        if ($request->status === 'fisk') {
+            $query->whereNotNull('fic');
+        } elseif ($request->status === 'nije_fisk') {
+            $query->whereNull('fic')->where('invoice_type', '!=', 'CORRECTIVE');
+        }
+    }
+
+    // SEARCH: broj računa, kompanija, buyer, seller
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('invoice_number', 'like', '%' . $search . '%')
+              ->orWhereHas('company', fn($q) => $q->where('name', 'like', '%' . $search . '%'))
+              ->orWhereHas('buyer', fn($q) => $q->where('name', 'like', '%' . $search . '%'))
+              ->orWhereHas('user', fn($q) => $q->where('name', 'like', '%' . $search . '%'));
+        });
     }
 
     $invoices = $query->orderBy('issued_at', 'desc')->get();

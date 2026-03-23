@@ -9,7 +9,8 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f9fafb; color: #111827;
+            background: #f9fafb;
+            color: #111827;
         }
         
         .page-container { max-width: 1400px; margin: 0 auto; padding: 32px; }
@@ -30,56 +31,75 @@
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
         }
-        .date-filters { display: flex; gap: 8px; align-items: center; flex: 1; }
-        .date-filters select, .date-filters input {
+
+        .filters-left { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+        .filter-chip {
+            padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb;
+            background: white; font-size: 13px; font-weight: 500; color: #6b7280;
+            cursor: pointer; transition: all 0.2s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .filter-chip:hover { border-color: #d1d5db; background: #f9fafb; }
+        .filter-chip.active { background: #6366f1; color: white; border-color: #6366f1; }
+
+        .range-select {
+            padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb;
+            background: white; font-size: 13px; font-weight: 500; color: #6b7280;
+            cursor: pointer; transition: all 0.2s; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+            height: 38px;
+        }
+        .range-select:hover { border-color: #d1d5db; background-color: #f9fafb; }
+        .range-select:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+        .search-input {
             height: 36px; padding: 0 12px; border: 1px solid #e5e7eb;
-            border-radius: 8px; font-size: 13px; background: white; color: #374151;
+            border-radius: 8px; font-size: 13px; background: white;
+            color: #374151; width: 240px;
         }
-        .date-filters select:focus, .date-filters input:focus {
-            outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        .search-input:focus {
+            outline: none; border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
-        
-        .btn {
-            height: 32px; padding: 0 12px; border-radius: 8px; font-size: 12px;
-            font-weight: 500; cursor: pointer; transition: all 0.2s; border: none;
-            display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+
+        .btn-logs {
+            background: white; color: #6b7280; border: 1px solid #e5e7eb;
+            height: 32px; padding: 0 12px; font-size: 12px; font-weight: 500;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center;
         }
-        .btn-secondary { background: white; color: #374151; border: 1px solid #e5e7eb; height: 36px; }
-        .btn-secondary:hover { background: #f9fafb; }
-        .btn-outline { background: white; color: #6366f1; border: 1px solid #6366f1; }
-        .btn-outline:hover { background: #f5f3ff; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
-        .btn-logs { background: white; color: #6b7280; border: 1px solid #e5e7eb; }
         .btn-logs:hover { background: #f9fafb; color: #111827; }
         
         .table-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         thead { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
         thead th {
-            padding: 12px 12px; text-align: left; font-size: 11px;
+            padding: 12px 16px; text-align: left; font-size: 12px;
             font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;
         }
         thead th.th-center { text-align: center; }
         tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
         tbody tr:hover { background: #f9fafb; }
         tbody tr:last-child { border-bottom: none; }
-        tbody td { padding: 12px; font-size: 13px; color: #374151; vertical-align: middle; }
+        tbody td { padding: 14px 16px; font-size: 14px; color: #374151; vertical-align: middle; }
         tbody td:first-child { font-weight: 600; color: #111827; font-size: 11px; word-break: break-all; line-height: 1.5; }
 
-        /* Column widths */
-        col.col-number { width: 16%; }
-        col.col-company { width: 9%; }
-        col.col-buyer { width: 7%; }
-        col.col-seller { width: 7%; }
-        col.col-date { width: 7%; }
-        col.col-total { width: 6%; }
-        col.col-vat { width: 5%; }
-        col.col-payment { width: 6%; }
+        col.col-number   { width: 16%; }
+        col.col-company  { width: 9%; }
+        col.col-buyer    { width: 7%; }
+        col.col-seller   { width: 7%; }
+        col.col-date     { width: 7%; }
+        col.col-total    { width: 6%; }
+        col.col-vat      { width: 5%; }
+        col.col-payment  { width: 6%; }
         col.col-products { width: 15%; }
         col.col-attempts { width: 4%; }
-        col.col-status { width: 8%; }
-        col.col-action { width: 10%; }
+        col.col-status   { width: 8%; }
+        col.col-action   { width: 10%; }
 
         .product-list { list-style: none; padding: 0; margin: 0; }
         .product-list li {
@@ -88,13 +108,13 @@
         }
 
         .badge {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 999px; font-size: 11px; font-weight: 500;
+            display: inline-flex; align-items: center; padding: 4px 12px;
+            border-radius: 12px; font-size: 12px; font-weight: 600;
         }
-        .badge-green { background: #d1fae5; color: #065f46; }
-        .badge-gray { background: #f3f4f6; color: #6b7280; }
+        .badge-green  { background: #d1fae5; color: #065f46; }
+        .badge-gray   { background: #f3f4f6; color: #6b7280; }
         .badge-yellow { background: #fef3c7; color: #92400e; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-red    { background: #fee2e2; color: #991b1b; }
 
         .attempts-badge {
             display: inline-flex; align-items: center; justify-content: center;
@@ -102,13 +122,14 @@
             font-weight: 600; background: #f3f4f6; color: #374151;
         }
         .attempts-badge.has-errors { background: #fee2e2; color: #991b1b; }
-        .attempts-badge.success { background: #d1fae5; color: #065f46; }
+        .attempts-badge.success    { background: #d1fae5; color: #065f46; }
 
         .action-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 
         .empty-state { padding: 80px 20px; text-align: center; }
-        .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .empty-state p { font-size: 16px; color: #6b7280; }
+        .empty-state p { font-size: 14px; color: #6b7280; }
+
+        .no-results { padding: 60px 20px; text-align: center; color: #6b7280; font-size: 14px; display: none; }
 
         /* Logs Modal */
         .modal-overlay {
@@ -143,7 +164,8 @@
         @media (max-width: 1024px) {
             .page-container { padding: 16px; }
             .controls-bar { flex-direction: column; align-items: stretch; }
-            .date-filters { flex-direction: column; }
+            .filters-left { width: 100%; }
+            .search-input { width: 100%; }
             .table-card { overflow-x: auto; }
             table { min-width: 1100px; table-layout: auto; }
         }
@@ -176,17 +198,39 @@
         </div>
         
         <div class="controls-bar">
-            <form method="GET" action="{{ route('invoices.index') }}" class="date-filters">
-                <select name="range">
-                    <option value="">All time</option>
-                    <option value="7" {{ request('range') == 7 ? 'selected' : '' }}>Last 7 days</option>
-                    <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
-                    <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
-                </select>
-                <input type="date" name="from" value="{{ request('from') }}" placeholder="From">
-                <input type="date" name="to" value="{{ request('to') }}" placeholder="To">
-                <button type="submit" class="btn btn-secondary">Filter</button>
-            </form>
+            <div class="filters-left">
+
+                {{-- Range dropdown — server-side, reloaduje stranicu --}}
+                <form method="GET" action="{{ route('invoices.index') }}" id="range-form">
+                    @if(request('status'))
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    <select name="range" class="range-select" onchange="document.getElementById('range-form').submit()">
+                        <option value="">All time</option>
+                        <option value="7"  {{ request('range') == 7  ? 'selected' : '' }}>Last 7 days</option>
+                        <option value="30" {{ request('range') == 30 ? 'selected' : '' }}>Last 30 days</option>
+                        <option value="90" {{ request('range') == 90 ? 'selected' : '' }}>Last 90 days</option>
+                    </select>
+                </form>
+
+                {{-- Status filter chipovi — server-side --}}
+                <a href="{{ request()->fullUrlWithQuery(['status' => '']) }}"
+                   class="filter-chip {{ !request('status') ? 'active' : '' }}">All</a>
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'fisk']) }}"
+                   class="filter-chip {{ request('status') === 'fisk' ? 'active' : '' }}">✓ Fisk.</a>
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'nije_fisk']) }}"
+                   class="filter-chip {{ request('status') === 'nije_fisk' ? 'active' : '' }}">Nije fisk.</a>
+
+                {{-- Search — client-side, bez forme --}}
+                <input
+                    type="text"
+                    id="invoice-search"
+                    class="search-input"
+                    placeholder="Search by invoice number..."
+                    autocomplete="off"
+                >
+
+            </div>
         </div>
         
         @if($invoices->count())
@@ -222,12 +266,12 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="invoices-table-body">
                     @foreach($invoices as $invoice)
                     @php
-                        $logsCount = $invoice->fiscalLogs->count();
+                        $logsCount   = $invoice->fiscalLogs->count();
                         $successLogs = $invoice->fiscalLogs->where('status', 'SUCCESS')->count();
-                        $errorLogs = $invoice->fiscalLogs->where('status', 'ERROR')->count();
+                        $errorLogs   = $invoice->fiscalLogs->where('status', 'ERROR')->count();
                     @endphp
                     <tr>
                         <td>{{ $invoice->invoice_number }}</td>
@@ -269,7 +313,7 @@
                         <td>
                             <div class="action-col">
                                 @if($logsCount > 0)
-                                    <button onclick="showLogs({{ $invoice->id }}, '{{ $invoice->invoice_number }}')" class="btn btn-logs">Logs</button>
+                                    <button onclick="showLogs({{ $invoice->id }}, '{{ $invoice->invoice_number }}')" class="btn-logs">Logs</button>
                                 @endif
                             </div>
                         </td>
@@ -277,11 +321,13 @@
                     @endforeach
                 </tbody>
             </table>
+            <div id="no-results" class="no-results">
+                No invoices found matching your search.
+            </div>
         </div>
         @else
         <div class="table-card">
             <div class="empty-state">
-                <div class="empty-state-icon">📭</div>
                 <p>No invoices found.</p>
             </div>
         </div>
@@ -289,6 +335,34 @@
     </div>
 
     <script>
+    // Client-side search — identično kao na Contracts, bez page reload
+    document.getElementById('invoice-search').addEventListener('input', function () {
+        var query = this.value.toLowerCase().trim();
+        var rows = document.querySelectorAll('#invoices-table-body tr');
+        var visible = 0;
+
+        rows.forEach(function (row) {
+            var invoiceNumber = row.cells[0].textContent.toLowerCase();
+            var company       = row.cells[1].textContent.toLowerCase();
+            var buyer         = row.cells[2].textContent.toLowerCase();
+            var seller        = row.cells[3].textContent.toLowerCase();
+
+            if (
+                invoiceNumber.indexOf(query) !== -1 ||
+                company.indexOf(query)       !== -1 ||
+                buyer.indexOf(query)         !== -1 ||
+                seller.indexOf(query)        !== -1
+            ) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+    });
+
     function showLogs(invoiceId, invoiceNumber) {
         document.getElementById('logs-modal-title').textContent = 'Logovi: ' + invoiceNumber;
         document.getElementById('logs-modal-content').innerHTML = '<div class="loading-logs">Učitavanje...</div>';
