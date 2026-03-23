@@ -33,6 +33,13 @@ class XmlController extends Controller
             'user'
         ])->findOrFail($invoiceId);
 
+        if ($invoice->fic) {
+                return response()->json([
+                'status' => 400,
+                'body' => 'Račun je već fiskalizovan. FIC: ' . $invoice->fic
+            ]);
+        }
+
         $dto = $this->mapInvoiceToDTO($invoice);
 
         $uuid = (string) Str::uuid();
