@@ -180,13 +180,19 @@ class XmlController extends Controller
         $privateKey = $certs['pkey'];
 
         $dataToSign =
-            $invoice->company->tax_id_number .
-            '|' .
-            $invoice->issued_at .
-            '|' .
-            $invoice->invoice_number .
-            '|' .
-            number_format($invoice->total_price_to_pay, 2, '.', '');
+        $invoice->company->tax_id_number .
+        '|' .
+        $invoice->issued_at->format('Y-m-d\TH:i:sP') .
+        '|' .
+        $invoice->invoice_number .
+        '|' .
+        $invoice->company->business_unit_code .
+        '|' .
+        $invoice->company->enu_code .
+        '|' .
+        $invoice->company->software_code .
+        '|' .
+        number_format($invoice->total_price_to_pay, 2, '.', '');
 
         // IIC mora biti 32 hex (MD5)
         $iic = md5($dataToSign);
