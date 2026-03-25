@@ -131,17 +131,6 @@
             background: #f9fafb;
         }
         
-        .results-info {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 16px;
-        }
-        
-        .results-info strong {
-            color: #111827;
-            font-weight: 600;
-        }
-        
         .table-card {
             background: white;
             border-radius: 12px;
@@ -231,7 +220,8 @@
         .no-results {
             padding: 60px 20px;
             text-align: center;
-            color: #6b7280;
+            color: #6b7280 !important;
+            font-weight: normal !important;
         }
         
         @media (max-width: 1024px) {
@@ -278,25 +268,11 @@
         </div>
         
         <div class="controls-bar">
-            <form method="GET" action="{{ route('invoices.logs') }}" class="filter-form">
-                <input type="text"
-                       name="invoice_number"
-                       placeholder="Search by invoice number..."
-                       value="{{ request('invoice_number') }}">
-                
-                <button type="submit" class="btn btn-primary">
-                    Filter
-                </button>
-                
-                <a href="{{ route('invoices.logs') }}" class="btn btn-secondary">
-                    Reset
-                </a>
-            </form>
+            <input type="text" id="log-search"
+                placeholder="Search by invoice number..."
+                style="height:36px; padding:0 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:13px; background:white; color:#374151; width:250px;">
         </div>
         
-        <div class="results-info">
-            Total logs: <strong>{{ $logs->count() }}</strong>
-        </div>
         
         <div class="table-card">
             <table>
@@ -308,7 +284,7 @@
                         <th>Date</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="logs-tbody">
                     @forelse($logs as $log)
                         <tr>
                             <td>
@@ -332,8 +308,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="no-results">
-                                No logs found for the given filters.
+                            <td colspan="4" class="no-results" >
+                                No logs found matching your search.
                             </td>
                         </tr>
                     @endforelse
@@ -341,5 +317,24 @@
             </table>
         </div>
     </div>
+
+    <script>
+    document.getElementById('log-search').addEventListener('input', function() {
+        var query = this.value.toLowerCase().trim();
+        var rows = document.querySelectorAll('#logs-tbody tr');
+        var visible = 0;
+
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            if (text.indexOf(query) !== -1) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    </script>
+
 </body>
 </html>
