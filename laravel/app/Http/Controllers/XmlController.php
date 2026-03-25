@@ -345,8 +345,8 @@ class XmlController extends Controller
 
         $dto->company = $invoice->company;
         $year = $invoice->issued_at ? $invoice->issued_at->format('Y') : date('Y');
-        $leftToken = strtolower((string) ($invoice->company->business_unit_code ?? ''));
-        $rightToken = strtolower((string) ($invoice->company->enu_code ?? ''));
+        $leftToken = strtolower((string) ($invoice->company->business_unit_code ?? '000'));
+        $rightToken = strtolower((string) ($invoice->company->enu_code ?? 'kom'));
         $rawInvNum = (string) ($invoice->invoice_number ?? '');
 
        if (preg_match('/^[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}\/[1-9][0-9]{0,14}\/[0-9]{4}\/[a-z]{2}[0-9]{3}[a-z]{2}[0-9]{3}$/', strtolower($rawInvNum))) {
