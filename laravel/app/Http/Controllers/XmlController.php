@@ -156,7 +156,7 @@ class XmlController extends Controller
     $invoice = Invoice::with('company')->findOrFail($invoiceId);
 
     $url = 'https://efitest.tax.gov.me/ic/#/verify?' . http_build_query([
-        'iic'  => $invoice->iic,
+        'iic'  => strtoupper($invoice->iic),
         'tin'  => $invoice->company->tax_id_number,
         'crtd' => $invoice->issued_at->format('Y-m-d\TH:i:sP'),
         'ord'  => $invoice->order_number,
@@ -197,7 +197,7 @@ class XmlController extends Controller
         number_format($invoice->total_price_to_pay, 2, '.', '');
 
         // IIC mora biti 32 hex (MD5)
-        $iic = md5($dataToSign);
+        $iic = strtoupper(md5($dataToSign));
 
         if (strlen($iic) !== 32) {
             throw new \Exception("IIC nije 32 hex.");
