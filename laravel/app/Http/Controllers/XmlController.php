@@ -84,6 +84,8 @@ class XmlController extends Controller
             $dto->iic = $iic;
             $dto->iic_signature = $iicSignature;
 
+            $invoice->update(['iic' => $iic]);
+
             $xml = FiscalXmlBuilder::build($dto, $uuid, $sendDateTime);
             $requestXml = $xml;
 
