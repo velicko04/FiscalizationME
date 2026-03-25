@@ -45,6 +45,7 @@ public function create()
         return [
             'id' => $p->id,
             'name' => $p->name,
+            'code' => $p->code,
             'price' => $p->price,
             'vat_rate_id' => $p->vat_rate_id,
             'vatRate' => ['percentage' => $p->vatRate->percentage ?? 0]
@@ -150,6 +151,7 @@ public function create()
             return [
                 'id' => $p->id,
                 'name' => $p->name,
+                'code' => $p->code,
                 'price' => $p->price,
                 'vat_rate_id' => $p->vat_rate_id,
                 'vatRate' => ['percentage' => $p->vatRate->percentage ?? 0]

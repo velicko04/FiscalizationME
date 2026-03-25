@@ -120,7 +120,7 @@
         
         .add-item-row {
             display: grid;
-            grid-template-columns: 1fr 80px 110px 130px auto;
+            grid-template-columns: 1fr 90px 70px 100px 120px auto;
             gap: 10px;
             align-items: end;
             padding: 16px;
@@ -334,6 +334,10 @@
                             <div id="suggestions" class="suggestions" style="display:none;"></div>
                         </div>
                         <div class="form-group" style="margin:0;">
+                                <label>Code</label>
+                                <input type="text" id="product-code" placeholder="npr. INT001">
+                        </div>
+                        <div class="form-group" style="margin:0;">
                             <label>Qty</label>
                             <input type="number" id="product-quantity" step="1" value="1" min="1">
                         </div>
@@ -460,54 +464,67 @@
     });
 
     function selectProduct(product) {
-        selectedProduct = product;
-        searchInput.value = product.name;
-        document.getElementById('product-price').value = parseFloat(product.price).toFixed(2);
-        for (var i = 0; i < vatSelect.options.length; i++) {
-            if (parseInt(vatSelect.options[i].value) === parseInt(product.vat_rate_id)) {
-                vatSelect.selectedIndex = i;
-                break;
-            }
+    selectedProduct = product;
+    searchInput.value = product.name;
+    document.getElementById('product-code').value = product.code ?? '';
+    document.getElementById('product-price').value = parseFloat(product.price).toFixed(2);
+    for (var i = 0; i < vatSelect.options.length; i++) {
+        if (parseInt(vatSelect.options[i].value) === parseInt(product.vat_rate_id)) {
+            vatSelect.selectedIndex = i;
+            break;
         }
     }
+}
 
     addItemBtn.addEventListener('click', function() {
-        var name = searchInput.value.trim();
-        var quantity = parseFloat(document.getElementById('product-quantity').value) || 1;
-        var price = parseFloat(document.getElementById('product-price').value) || 0;
+    var name = searchInput.value.trim();
+    var code = document.getElementById('product-code').value.trim() || 'N/A';
+    var quantity = parseFloat(document.getElementById('product-quantity').value) || 1;
+    var price = parseFloat(document.getElementById('product-price').value) || 0;
 
-        if (!name) { alert('Unesite naziv proizvoda.'); return; }
+    if (!name) {
+        alert('Unesite naziv proizvoda.');
+        return;
+    }
 
-        var selectedVatOption = vatSelect.options[vatSelect.selectedIndex];
-        var vatPercentage = selectedProduct ? parseFloat(selectedProduct.vatRate.percentage) : parseFloat(selectedVatOption.dataset.percentage);
-        var vatRateId = selectedProduct ? (parseInt(selectedProduct.vat_rate_id) || 1) : parseInt(selectedVatOption.value);
-        var totalPriceWithVat = (quantity * price) * (1 + vatPercentage / 100);
+    var selectedVatOption = vatSelect.options[vatSelect.selectedIndex];
+    var vatPercentage = selectedProduct
+        ? parseFloat(selectedProduct.vatRate.percentage)
+        : parseFloat(selectedVatOption.dataset.percentage);
+    var vatRateId = selectedProduct
+        ? (parseInt(selectedProduct.vat_rate_id) || 1)
+        : parseInt(selectedVatOption.value);
 
-        var row = document.createElement('tr');
-        row.classList.add('item-row');
-        row.dataset.name = name;
-        row.dataset.quantity = quantity;
-        row.dataset.price = price;
-        row.dataset.vatRateId = vatRateId;
+    var totalPrice = quantity * price;
+    var totalPriceWithVat = totalPrice + (totalPrice * vatPercentage / 100);
 
-        row.innerHTML =
-            '<td><span>' + name + '</span></td>' +
-            '<td><span>' + quantity + '</span></td>' +
-            '<td><span>' + price.toFixed(2) + '</span></td>' +
-            '<td><span>' + vatPercentage + '%</span></td>' +
-            '<td><span>' + totalPriceWithVat.toFixed(2) + '</span></td>' +
-            '<td><button type="button" class="btn btn-danger" onclick="removeItem(this)">✕</button></td>';
+    var row = document.createElement('tr');
+    row.classList.add('item-row');
+    row.dataset.name = name;
+    row.dataset.code = code;
+    row.dataset.quantity = quantity;
+    row.dataset.price = price;
+    row.dataset.vatRateId = vatRateId;
 
-        itemsContainer.appendChild(row);
-        updateTableVisibility();
+    row.innerHTML =
+        '<td><span>' + name + '</span><br><small style="color:#9ca3af;">' + code + '</small></td>' +
+        '<td><span>' + quantity + '</span></td>' +
+        '<td><span>' + price.toFixed(2) + '</span></td>' +
+        '<td><span>' + vatPercentage + '%</span></td>' +
+        '<td><span>' + totalPriceWithVat.toFixed(2) + '</span></td>' +
+        '<td><button type="button" class="btn btn-danger" onclick="removeItem(this)">✕</button></td>';
 
-        searchInput.value = '';
-        document.getElementById('product-quantity').value = 1;
-        document.getElementById('product-price').value = 0;
-        vatSelect.selectedIndex = 0;
-        selectedProduct = null;
-        suggestionsBox.style.display = 'none';
-    });
+    itemsContainer.appendChild(row);
+    updateTableVisibility();
+
+    searchInput.value = '';
+    document.getElementById('product-code').value = '';
+    document.getElementById('product-quantity').value = 1;
+    document.getElementById('product-price').value = 0;
+    vatSelect.selectedIndex = 0;
+    selectedProduct = null;
+    suggestionsBox.style.display = 'none';
+});
 
     function removeItem(btn) {
         btn.closest('tr').remove();
@@ -530,6 +547,7 @@
         rows.forEach(function(row) {
             itemsData.push({
                 name: row.dataset.name,
+                code: row.dataset.code || 'N/A',
                 quantity: parseFloat(row.dataset.quantity),
                 price: parseFloat(row.dataset.price),
                 vat_rate_id: parseInt(row.dataset.vatRateId) || 1
