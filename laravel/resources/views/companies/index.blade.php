@@ -50,27 +50,43 @@
         .empty-state { padding: 80px 20px; text-align: center; }
         .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .empty-state p { font-size: 16px; color: #6b7280; }
+
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        #company-search {
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+            width: 320px;
+            background: white;
+        }
     </style>
 </head>
 <body>
     @include('partials.admin-navbar')
 
     <div class="page-container">
-        <div class="page-header">
+      <div class="page-header">
             <div>
                 <h1 class="page-title">Companies</h1>
                 <p class="page-subtitle">Manage all your companies</p>
             </div>
-            <a href="{{ route('companies.create') }}" class="btn btn-primary">+ Add Company</a>
         </div>
 
-        @if(session('success'))
-        <div class="alert-success">{{ session('success') }}</div>
-        @endif
-        <div style="margin-bottom: 16px;">
-            <input type="text" id="company-search" placeholder="Search companies..." 
-            style="height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid #e5e7eb; 
-            font-size: 14px; width: 320px; background: white;">
+        <div class="controls-bar">
+            <input type="text" id="company-search" placeholder="Search companies...">
+
+            <a href="{{ route('companies.create') }}" class="btn btn-primary">
+                + Add Company
+            </a>
         </div>
         @if($companies->count())
         <div class="table-card">

@@ -108,8 +108,8 @@
         }
 
         .badge {
-            display: inline-flex; align-items: center; padding: 4px 12px;
-            border-radius: 12px; font-size: 12px; font-weight: 600;
+            display: inline-flex; align-items: center; padding: 2px 8px;
+            border-radius: 12px; font-size: 11px; font-weight: 500;
         }
         .badge-green  { background: #d1fae5; color: #065f46; }
         .badge-gray   { background: #f3f4f6; color: #6b7280; }
