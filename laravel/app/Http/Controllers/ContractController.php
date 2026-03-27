@@ -120,6 +120,7 @@ public function create()
             $product = Product::updateOrCreate(
                 ['name' => $item['name']],  // provjeri po imenu
                 [
+                    'code' => $item['code'] ?? '0000',
                     'price' => $item['price'],  // postavi cijenu iz forme
                     'vat_rate_id' => $item['vat_rate_id'] ?? 1,  // postavi default VAT ako nije prisutan
                     'unit' => 'kom',
@@ -197,6 +198,7 @@ public function create()
                 $product = Product::updateOrCreate(
                     ['name' => $item['name']],
                     [
+                        'code' => $item['code'] ?? '0000',
                         'price'      => $item['price'],
                         'vat_rate_id' => $item['vat_rate_id'] ?? 1,
                         'unit'       => 'kom',
