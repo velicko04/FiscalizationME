@@ -396,6 +396,15 @@ class XmlController extends Controller
         $dto->total_price_without_vat = (float) $invoice->total_price_without_vat;
         $dto->total_vat_amount = (float) $invoice->total_vat_amount;
 
+        // Ako je CORRECTIVE, dodaj referencu na originalni račun
+        if ($dto->invoiceType === \App\Enums\InvoiceType::CORRECTIVE) {
+            $correctiveRecord = \App\Models\CorrectiveInvoice::where('invoice_id', $invoice->id)->first();
+            if ($correctiveRecord) {
+                $dto->corrective_iic = $correctiveRecord->reference_iic;
+                $dto->corrective_issue_datetime = $correctiveRecord->original_issue_datetime->format('Y-m-d\TH:i:sP');
+            }
+        }
+
         return $dto;
     }
 }

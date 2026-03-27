@@ -33,4 +33,6 @@ class CreateInvoiceRequest
     public ?\DateTime $issued_at = null;
     public ?string $iic = null;
     public ?string $iic_signature = null;
+    public ?string $corrective_iic = null;
+    public ?string $corrective_issue_datetime = null;
 }

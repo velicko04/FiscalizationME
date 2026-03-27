@@ -82,6 +82,16 @@ class FiscalXmlBuilder
         $invoiceEl->setAttribute('TotVATAmt', number_format($invoice->total_vat_amount, 2, '.', ''));
         $invoiceEl->setAttribute('TypeOfInv', strtoupper($invoice->typeOfInvoice->value));
         $invoiceEl->setAttribute('InvType', strtoupper($invoice->invoiceType->value));
+        if (strtoupper($invoice->invoiceType->value) === 'CORRECTIVE' 
+        && !empty($invoice->corrective_iic) 
+        && !empty($invoice->corrective_issue_datetime)) {
+    
+        $correctiveInv = $dom->createElement('CorrectiveInv');
+        $correctiveInv->setAttribute('IIC', strtoupper($invoice->corrective_iic));
+        $correctiveInv->setAttribute('IssueDateTime', $invoice->corrective_issue_datetime);
+        $correctiveInv->setAttribute('Type', 'CORRECTIVE');
+        $invoiceEl->appendChild($correctiveInv);
+}
 
         $root->appendChild($invoiceEl);
 
