@@ -34,7 +34,7 @@ class SettingsController extends Controller
         return back()->with('success', 'Lozinka uspješno promijenjena.');
     }
 
-    public function notifications()
+ public function notifications()
 {
     $notifications = collect();
 
@@ -47,39 +47,40 @@ class SettingsController extends Controller
     foreach ($expiringContracts as $contract) {
         $daysLeft = now()->diffInDays($contract->end_date);
         $notifications->push([
-            'icon' => '⚠️',
-            'type' => 'warning',
+            'icon'  => '⚠️',
+            'type'  => 'warning',
             'title' => 'Contract expiring soon',
-            'text' => $contract->contract_number . ' ističe za ' . $daysLeft . ' dana',
-            'time' => $contract->end_date,
+            'text'  => $contract->contract_number . ' ističe za ' . $daysLeft . ' dana',
+            'url'   => '/contracts/' . $contract->id . '/invoices',
+            'time'  => $contract->end_date,
         ]);
     }
 
-    // Fakture sa greškama u fiskalizaciji
-    $failedInvoices = \App\Models\FiscalLog::where('status', 'ERROR')
-        ->whereDoesntHave('invoice', function($q) {
-            $q->whereNotNull('fic');
-        })
+    // Fakture sa greškama — nefiskalizovane koje imaju ERROR log
+    $failedLogs = \App\Models\FiscalLog::where('status', 'ERROR')
         ->with('invoice')
         ->latest()
-        ->take(5)
+        ->take(10)
         ->get();
 
-    foreach ($failedInvoices as $log) {
-        $notifications->push([
-            'icon' => '❌',
-            'type' => 'error',
-            'title' => 'Greška fiskalizacije',
-            'text' => $log->invoice->invoice_number ?? 'N/A',
-            'time' => $log->created_at,
-        ]);
+    foreach ($failedLogs as $log) {
+        if ($log->invoice && !$log->invoice->fic) {
+            $notifications->push([
+                'icon'  => '❌',
+                'type'  => 'error',
+                'title' => 'Greška fiskalizacije',
+                'text'  => $log->invoice->invoice_number,
+                'url'   => '/fiscal-logs',
+                'time'  => $log->created_at,
+            ]);
+        }
     }
 
-    // Sortiraj po vremenu
-    $notifications = $notifications->sortByDesc('time')->values();
-
-    return response()->json($notifications);
+    return response()->json(
+        $notifications->sortByDesc('time')->values()
+    );
 }
+
 
     public function search(Request $request)
 {

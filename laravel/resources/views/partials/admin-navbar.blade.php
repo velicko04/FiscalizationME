@@ -190,17 +190,17 @@
         position: absolute;
         top: 4px;
         right: 4px;
-        width: 16px;
+        min-width: 16px;
         height: 16px;
+        padding: 0 3px;
         background: #ef4444;
         border-radius: 999px;
         font-size: 10px;
         font-weight: 700;
         color: white;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
-        display: none;
     }
     
     /* DROPDOWN */
@@ -248,6 +248,8 @@
         align-items: start;
         border-bottom: 1px solid #f3f4f6;
         transition: background 0.2s;
+        text-decoration: none;
+        color: #111827;
     }
     .dropdown-item:last-child { border-bottom: none; }
     .dropdown-item:hover { background: #f9fafb; }
@@ -267,7 +269,6 @@
     .notification-content { flex: 1; }
     .notification-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 4px; }
     .notification-text { font-size: 12px; color: #6b7280; line-height: 1.4; }
-    .notification-time { font-size: 11px; color: #9ca3af; margin-top: 4px; }
     
     .notif-warning .notification-icon { background: #fef3c7; }
     .notif-error .notification-icon { background: #fee2e2; }
@@ -374,6 +375,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+    var currentNotifCount = 0;
+
     // ==================
     // DROPDOWNS
     // ==================
@@ -390,11 +393,12 @@ document.addEventListener('DOMContentLoaded', function() {
             closeAllDropdowns();
             if (!wasOpen) {
                 menu.classList.add('show');
-                
                 if (id === 'notifications') {
-                loadNotifications();
-                document.getElementById('notif-badge').style.display = 'none'; // 👈 OVDE
-            }
+                    // Sačuvaj trenutni count kao "viđeno"
+                    localStorage.setItem('notifSeenCount', currentNotifCount);
+                    document.getElementById('notif-badge').style.display = 'none';
+                    loadNotifications();
+                }
             }
         });
     });
@@ -411,33 +415,43 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ==================
-    // NOTIFIKACIJE
+    // NOTIFIKACIJE — badge pri page load
     // ==================
+    fetch('/notifications', { headers: { 'Accept': 'application/json' } })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        currentNotifCount = data.length;
+        var seenCount = parseInt(localStorage.getItem('notifSeenCount') || '0');
+
+        // Prikaži badge samo ako ima NOVIH notifikacija od zadnjeg otvaranja
+        if (currentNotifCount > seenCount) {
+            var badge = document.getElementById('notif-badge');
+            var newCount = currentNotifCount - seenCount;
+            badge.style.display = 'flex';
+            badge.textContent = newCount > 9 ? '9+' : newCount;
+        }
+    });
+
     function loadNotifications() {
         fetch('/notifications', { headers: { 'Accept': 'application/json' } })
         .then(function(res) { return res.json(); })
         .then(function(data) {
             var content = document.getElementById('notif-content');
-            var badge = document.getElementById('notif-badge');
 
             if (!data.length) {
                 content.innerHTML = '<div class="notif-empty">Nema novih notifikacija.</div>';
-                badge.style.display = 'none';
                 return;
             }
-
-            badge.style.display = 'flex';
-            badge.textContent = data.length > 9 ? '9+' : data.length;
 
             var html = '';
             data.forEach(function(n) {
                 var typeClass = n.type === 'error' ? 'notif-error' : n.type === 'warning' ? 'notif-warning' : 'notif-success';
-                html += '<div class="dropdown-item ' + typeClass + '">';
+                html += '<a href="' + (n.url || '#') + '" class="dropdown-item ' + typeClass + '">';
                 html += '<div class="notification-icon">' + n.icon + '</div>';
                 html += '<div class="notification-content">';
                 html += '<div class="notification-title">' + n.title + '</div>';
                 html += '<div class="notification-text">' + n.text + '</div>';
-                html += '</div></div>';
+                html += '</div></a>';
             });
 
             content.innerHTML = html;
@@ -446,17 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('notif-content').innerHTML = '<div class="notif-empty">Greška pri učitavanju.</div>';
         });
     }
-
-    // Učitaj badge odmah
-    fetch('/notifications', { headers: { 'Accept': 'application/json' } })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-        var badge = document.getElementById('notif-badge');
-        if (data.length > 0) {
-            badge.style.display = 'flex';
-            badge.textContent = data.length > 9 ? '9+' : data.length;
-        }
-    });
 
     // ==================
     // GLOBAL SEARCH
