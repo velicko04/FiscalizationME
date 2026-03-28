@@ -10,6 +10,7 @@ use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\StornoController;
+use App\Http\Controllers\SettingsController;
 
 // Auth rute
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
@@ -55,4 +56,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoice/{id}/storno', [StornoController::class, 'store'])->name('invoice.storno');
 
     Route::get('/invoice/{id}/logs', [InvoiceController::class, 'invoiceLogs'])->name('invoice.logs');
+
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+
+    Route::get('/notifications', [SettingsController::class, 'notifications'])->name('notifications');
+    Route::get('/search', [SettingsController::class, 'search'])->name('search');
 });
