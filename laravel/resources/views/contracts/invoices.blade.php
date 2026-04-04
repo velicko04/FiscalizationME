@@ -115,7 +115,6 @@
         .action-col { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 
         .empty-state { padding: 80px 20px; text-align: center; }
-        .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .empty-state p { font-size: 16px; color: #6b7280; }
 
         /* Modals */
@@ -330,7 +329,6 @@
         @else
         <div class="table-card">
             <div class="empty-state">
-                <div class="empty-state-icon">📭</div>
                 <p>No invoices found for this contract.</p>
             </div>
         </div>
