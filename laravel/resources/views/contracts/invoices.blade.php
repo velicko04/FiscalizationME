@@ -303,6 +303,9 @@
                         </td>
                         <td>
                             <div class="action-col">
+                                
+                                    <a href="/invoice/{{ $invoice->id }}/pdf" class="btn btn-secondary" target="_blank">PDF</a>
+                                
                                 @if($invoice->fic)
                                     <button onclick="showQr({{ $invoice->id }}, '{{ $invoice->fic }}')" class="btn btn-outline">QR</button>
                                     @if($invoice->invoice_type->value !== 'CORRECTIVE' && !$invoice->correctiveInvoices->count())

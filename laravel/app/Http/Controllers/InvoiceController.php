@@ -88,4 +88,19 @@ public function invoiceLogs($id)
     return response()->json($logs);
 }
 
+public function pdf($id)
+{
+    $invoice = Invoice::with([
+        'items.product.vatRate',
+        'company',
+        'buyer',
+        'user'
+    ])->findOrFail($id);
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', compact('invoice'));
+    $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
+
+    return $pdf->download($filename);
+}
+
 }

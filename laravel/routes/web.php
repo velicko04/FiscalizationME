@@ -33,6 +33,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoice/{id}/pdf', [InvoiceController::class, 'pdf'])->name('invoice.pdf');
 
     Route::get('/fiscal-logs', [InvoiceController::class, 'logs'])->name('invoices.logs');
 
