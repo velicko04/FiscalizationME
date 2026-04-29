@@ -11,6 +11,8 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\StornoController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ChatController;
+
 
 // Auth rute
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
@@ -63,4 +65,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/notifications', [SettingsController::class, 'notifications'])->name('notifications');
     Route::get('/search', [SettingsController::class, 'search'])->name('search');
+
+    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
 });
