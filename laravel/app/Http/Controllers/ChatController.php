@@ -77,6 +77,63 @@ class ChatController extends Controller
         ]);
     }
 
+    if ($this->isShowContractInvoicesRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleShowContractInvoicesRequest($message);
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'show_contract_invoices',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract_invoices']
+        ]);
+    }
+
+    if ($this->isShowContractItemsRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleShowContractItemsRequest($message);
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'show_contract_items',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract_items']
+        ]);
+    }
+
+    if ($this->isShowContractRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleShowContractRequest($message);
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'show_contract',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract']
+        ]);
+    }
+
     $promptDataJson = $this->buildPromptDataJson($message, $provider);
 
     $systemPrompt = "Ti si asistent za FiscalizationME billing sistem u Crnoj Gori.
@@ -174,6 +231,228 @@ private function isCreateInvoiceRequest(string $message): bool
         || str_contains($normalizedMessage, 'fakturu')
         || str_contains($normalizedMessage, 'invoice')
     );
+}
+
+private function isShowContractItemsRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractContractNumber($message) !== null
+        && (
+            str_contains($normalizedMessage, 'stavke')
+            || str_contains($normalizedMessage, 'stavka')
+            || str_contains($normalizedMessage, 'items')
+            || str_contains($normalizedMessage, 'proizvod')
+            || str_contains($normalizedMessage, 'proizvodi')
+            || str_contains($normalizedMessage, 'usluge')
+        )
+        && !$this->isCreateContractRequest($message)
+        && !$this->isCreateInvoiceRequest($message);
+}
+
+private function isShowContractInvoicesRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractContractNumber($message) !== null
+        && (
+            str_contains($normalizedMessage, 'faktura')
+            || str_contains($normalizedMessage, 'fakture')
+            || str_contains($normalizedMessage, 'fakturis')
+            || str_contains($normalizedMessage, 'invoice')
+            || str_contains($normalizedMessage, 'invoices')
+            || str_contains($normalizedMessage, 'zadnja')
+            || str_contains($normalizedMessage, 'poslednja')
+            || str_contains($normalizedMessage, 'last')
+        )
+        && !$this->isCreateInvoiceRequest($message);
+}
+
+private function isShowContractRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractContractNumber($message) !== null
+        && (
+            str_contains($normalizedMessage, 'prikazi')
+            || str_contains($normalizedMessage, 'prikaži')
+            || str_contains($normalizedMessage, 'vidi')
+            || str_contains($normalizedMessage, 'pogledaj')
+            || str_contains($normalizedMessage, 'show')
+            || str_contains($normalizedMessage, 'what about')
+            || str_contains($normalizedMessage, 'sta je')
+            || str_contains($normalizedMessage, 'šta je')
+            || str_contains($normalizedMessage, 'ugovor')
+            || str_contains($normalizedMessage, 'contract')
+        )
+        && !$this->isCreateContractRequest($message)
+        && !$this->isCreateInvoiceRequest($message);
+}
+
+private function handleShowContractInvoicesRequest(string $message): string
+{
+    $contract = $this->findContractForChat($message);
+    if (!$contract) {
+        return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži fakture za ctr 012” ili „da li je ugovor 12 fakturisan za april”.';
+    }
+
+    $period = $this->extractInvoicePeriod($message);
+    $invoices = $contract->invoices->sortByDesc('issued_at');
+
+    if ($period) {
+        $invoices = $invoices->filter(fn($invoice) => $invoice->issued_at
+            && (int) $invoice->issued_at->format('m') === $period['month']
+            && (int) $invoice->issued_at->format('Y') === $period['year']);
+    }
+
+    if ($invoices->isEmpty()) {
+        $periodText = $period ? " za period " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}" : '';
+
+        return "Ugovor {$contract->contract_number} nema fakture{$periodText}.";
+    }
+
+    if ($this->isLastInvoiceQuestion($message)) {
+        $invoice = $invoices->first();
+        $status = $invoice->fic ? 'fiskalizovana' : 'nije fiskalizovana';
+
+        return "Zadnja faktura za ugovor {$contract->contract_number}:\n- Broj fakture: {$invoice->invoice_number}\n- Datum: {$invoice->issued_at->format('Y-m-d')}\n- Ukupno bez PDV-a: {$invoice->total_price_without_vat} EUR\n- PDV: {$invoice->total_vat_amount} EUR\n- Ukupno za plaćanje: {$invoice->total_price_to_pay} EUR\n- Status: {$status}";
+    }
+
+    $lines = $invoices->map(function ($invoice) {
+        $status = $invoice->fic ? 'fiskalizovana' : 'nije fiskalizovana';
+
+        return "- {$invoice->invoice_number}: {$invoice->issued_at->format('Y-m-d')}, {$invoice->total_price_to_pay} EUR, {$status}";
+    })->join("\n");
+
+    $total = round($invoices->sum(fn($invoice) => (float) $invoice->total_price_to_pay), 2);
+    $periodText = $period ? " za " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}" : '';
+
+    return "Fakture ugovora {$contract->contract_number}{$periodText}:\n{$lines}\n\nBroj faktura: {$invoices->count()}\nUkupno fakturisano: {$total} EUR";
+}
+
+private function isLastInvoiceQuestion(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return str_contains($normalizedMessage, 'zadnja')
+        || str_contains($normalizedMessage, 'poslednja')
+        || str_contains($normalizedMessage, 'posljednja')
+        || str_contains($normalizedMessage, 'last')
+        || str_contains($normalizedMessage, 'najnovija');
+}
+
+private function extractInvoicePeriod(string $message): ?array
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    if (preg_match('/\b(\d{1,2})\/(\d{4})\b/', $message, $matches) === 1) {
+        return ['month' => (int) $matches[1], 'year' => (int) $matches[2]];
+    }
+
+    if (preg_match('/\b(\d{4})-(\d{1,2})(?:-\d{1,2})?\b/', $message, $matches) === 1) {
+        return ['month' => (int) $matches[2], 'year' => (int) $matches[1]];
+    }
+
+    $months = [
+        'januar' => 1, 'january' => 1,
+        'februar' => 2, 'february' => 2,
+        'mart' => 3, 'march' => 3,
+        'april' => 4,
+        'maj' => 5, 'may' => 5,
+        'jun' => 6, 'june' => 6,
+        'jul' => 7, 'july' => 7,
+        'avgust' => 8, 'august' => 8,
+        'septembar' => 9, 'september' => 9,
+        'oktobar' => 10, 'october' => 10,
+        'novembar' => 11, 'november' => 11,
+        'decembar' => 12, 'december' => 12,
+    ];
+
+    foreach ($months as $name => $month) {
+        if (str_contains($normalizedMessage, $name)) {
+            preg_match('/\b(20\d{2})\b/', $message, $yearMatches);
+
+            return ['month' => $month, 'year' => isset($yearMatches[1]) ? (int) $yearMatches[1] : now()->year];
+        }
+    }
+
+    return null;
+}
+
+private function handleShowContractItemsRequest(string $message): string
+{
+    $contract = $this->findContractForChat($message);
+    if (!$contract) {
+        return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži stavke za ctr 012” ili „stavke ugovora 12”.';
+    }
+
+    if ($contract->items->isEmpty()) {
+        return "Ugovor {$contract->contract_number} nema stavke.";
+    }
+
+    [$totalWithoutVat, $totalVat, $totalWithVat] = $this->calculateContractTotals($contract);
+    $items = $contract->items->map(function ($item) {
+        $vatRate = $item->vatRate->percentage ?? 0;
+        $base = round((float) $item->quantity * (float) $item->unit_price, 2);
+        $vat = round($base * ((float) $vatRate / 100), 2);
+        $total = round($base + $vat, 2);
+
+        return "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR, PDV {$vatRate}%, ukupno {$total} EUR";
+    })->join("\n");
+
+    return "Stavke ugovora {$contract->contract_number}:\n{$items}\n\nUkupno bez PDV-a: {$totalWithoutVat} EUR\nPDV: {$totalVat} EUR\nUkupno za plaćanje: {$totalWithVat} EUR";
+}
+
+private function handleShowContractRequest(string $message): string
+{
+    $contract = $this->findContractForChat($message);
+    if (!$contract) {
+        return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži ctr 012”, „vidi ugovor 12” ili „what about ctr012”.';
+    }
+
+    [$totalWithoutVat, $totalVat, $totalWithVat] = $this->calculateContractTotals($contract);
+    $invoiceCount = $contract->invoices->count();
+    $lastInvoice = $contract->invoices->sortByDesc('issued_at')->first();
+    $lastInvoiceText = $lastInvoice
+        ? "{$lastInvoice->invoice_number} ({$lastInvoice->issued_at->format('Y-m-d')}, {$lastInvoice->total_price_to_pay} EUR)"
+        : 'nema faktura';
+
+    return "Ugovor {$contract->contract_number}\nFirma: {$contract->company->name}\nKupac: {$contract->buyer->name}\nStatus: {$contract->status}\nPeriod: {$contract->start_date->format('Y-m-d')} - {$contract->end_date->format('Y-m-d')}\nKreiranje fakture: {$contract->billing_frequency}\nDan izdavanja: {$contract->issue_day}\nNačin plaćanja: {$contract->default_payment_method}\nBroj stavki: {$contract->items->count()}\nBroj faktura: {$invoiceCount}\nZadnja faktura: {$lastInvoiceText}\n\nUkupno bez PDV-a: {$totalWithoutVat} EUR\nPDV: {$totalVat} EUR\nUkupno za plaćanje: {$totalWithVat} EUR";
+}
+
+private function findContractForChat(string $message)
+{
+    $contractNumber = $this->extractContractNumber($message);
+    if ($contractNumber === null) {
+        return null;
+    }
+
+    return \App\Models\Contract::with([
+        'company',
+        'buyer',
+        'items.product.vatRate',
+        'items.vatRate',
+        'invoices',
+    ])->where('contract_number', $contractNumber)->first();
+}
+
+private function calculateContractTotals($contract): array
+{
+    $totalWithoutVat = 0;
+    $totalVat = 0;
+
+    foreach ($contract->items as $item) {
+        $base = round((float) $item->quantity * (float) $item->unit_price, 2);
+        $vatRate = $item->vatRate->percentage ?? 0;
+        $vat = round($base * ((float) $vatRate / 100), 2);
+        $totalWithoutVat += $base;
+        $totalVat += $vat;
+    }
+
+    $totalWithoutVat = round($totalWithoutVat, 2);
+    $totalVat = round($totalVat, 2);
+
+    return [$totalWithoutVat, $totalVat, round($totalWithoutVat + $totalVat, 2)];
 }
 
 private function isPendingActionResponse(string $message): bool
