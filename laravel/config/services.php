@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'gemini' => [
+    'key' => env('GEMINI_API_KEY'),
+    ],
+
     'tax' => [
     'cert_path' => env('TAX_CERT_PATH'),
     'cert_password' => env('TAX_CERT_PASSWORD'),

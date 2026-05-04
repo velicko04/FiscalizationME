@@ -182,6 +182,7 @@
     <div class="provider-bar">
         <button class="provider-btn active" id="btn-ollama" onclick="setProvider('ollama')">Ollama</button>
         <button class="provider-btn" id="btn-apple" onclick="setProvider('apple')">Apple Intelligence</button>
+        <button class="provider-btn" id="btn-gemini" onclick="setProvider('gemini')">Gemini</button>
         <span class="provider-label" id="provider-label">Ollama aktivan</span>
     </div>
 
@@ -194,7 +195,7 @@
             <button type="button" class="prompt-chip" data-prompt="Prikaži stavke ugovora">Vidi stavke ugovora</button>
             <button type="button" class="prompt-chip" data-prompt="Vidi fakture za ugovor">Vidi fakture za ugovor</button>
             <button type="button" class="prompt-chip" data-prompt="Koliko ima aktivnih, neaktivnih i isteklih ugovora?">Statusi ugovora</button>
-            <button type="button" class="prompt-chip" data-prompt="Daj mi listu svih firmi.">Lista firmi</button>
+            <button type="button" class="prompt-chip" data-prompt="Prikaži mi sve firme">Lista firmi</button>
             <button type="button" class="prompt-chip" data-prompt="Prikaži nefiskalizovane fakture.">Nefiskalizovane fakture</button>
         </div>
     </div>
@@ -226,7 +227,11 @@ function setProvider(p) {
     currentProvider = p;
     document.getElementById('btn-ollama').classList.toggle('active', p === 'ollama');
     document.getElementById('btn-apple').classList.toggle('active', p === 'apple');
-    document.getElementById('provider-label').textContent = p === 'ollama' ? 'Ollama aktivan' : 'Apple Intelligence aktivan';
+    document.getElementById('btn-gemini').classList.toggle('active', p === 'gemini');
+    document.getElementById('provider-label').textContent = 
+    p === 'ollama' ? 'Ollama aktivan' : 
+    p === 'apple' ? 'Apple Intelligence aktivan' : 
+    'Gemini aktivan';
 }
 
 function scrollToBottom() {

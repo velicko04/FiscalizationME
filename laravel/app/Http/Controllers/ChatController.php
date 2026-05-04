@@ -153,6 +153,44 @@ class ChatController extends Controller
         ]);
     }
 
+    if ($this->isShowInvoiceItemsRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleShowInvoiceItemsRequest($message);
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'show_invoice_items',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_invoice_items']
+        ]);
+    }
+
+    if ($this->isShowInvoiceRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleShowInvoiceRequest($message);
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'show_invoice',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_invoice']
+        ]);
+    }
+
     if ($this->isShowContractItemsRequest($message)) {
         $startTime = microtime(true);
         $content = $this->handleShowContractItemsRequest($message);
@@ -202,28 +240,39 @@ PODACI_JSON:
 
     $startTime = microtime(true);
 
-    if ($provider === 'apple') {
-        $content = $this->callAppleIntelligence($message, $promptDataJson, $requestId);
+    $systemPrompt = $this->buildSystemPrompt();
 
-        if ($this->isUnsupportedAppleLanguageError($content)) {
-            \Log::warning('LLM Apple unsupported language', [
-                'request_id' => $requestId,
-                'reason' => 'unsupported_language_or_locale',
-                'apple_response' => $content,
-            ]);
+if ($provider === 'apple') {
 
-            $content = 'Apple Foundation Models trenutno ne podržava srpski/odabrani jezik za ovu sesiju. Za test Apple Intelligence koristi pitanje na engleskom ili promijeni Apple servis da uvijek koristi podržani locale, npr. en_US.';
-        } elseif ($this->isAppleContextWindowError($content)) {
-            \Log::warning('LLM Apple context window exceeded', [
-                'request_id' => $requestId,
-                'apple_response' => $content,
-            ]);
+    $content = $this->callAppleIntelligence($message, $promptDataJson, $requestId);
 
-            $content = 'Apple Foundation Models ima ograničenje konteksta od oko 4096 tokena. Pokušaj uži upit, npr. za jednu firmu, jedan ugovor ili jednu fakturu.';
-        }
-    } else {
-        $content = $this->callOllama($message, $history, $systemPrompt, $requestId, 'ollama');
+    if ($this->isUnsupportedAppleLanguageError($content)) {
+        \Log::warning('LLM Apple unsupported language', [
+            'request_id' => $requestId,
+            'reason' => 'unsupported_language_or_locale',
+            'apple_response' => $content,
+        ]);
+
+        $content = 'Apple Foundation Models trenutno ne podržava srpski/odabrani jezik za ovu sesiju. Za test Apple Intelligence koristi pitanje na engleskom ili promijeni Apple servis da uvijek koristi podržani locale, npr. en_US.';
+
+    } elseif ($this->isAppleContextWindowError($content)) {
+        \Log::warning('LLM Apple context window exceeded', [
+            'request_id' => $requestId,
+            'apple_response' => $content,
+        ]);
+
+        $content = 'Apple Foundation Models ima ograničenje konteksta od oko 4096 tokena. Pokušaj uži upit, npr. za jednu firmu, jedan ugovor ili jednu fakturu.';
     }
+
+} elseif ($provider === 'gemini') {
+
+    $content = $this->callGemini($message, $systemPrompt, $requestId);
+
+} else {
+
+    // fallback (ollama ili šta god je default)
+    $content = $this->callOllama($message, $history, $systemPrompt, $requestId, 'ollama');
+}
 
     $elapsed = round(microtime(true) - $startTime, 2);
 
@@ -426,6 +475,116 @@ private function handleUnfiscalizedInvoicesRequest(): string
     $total = round($invoices->sum(fn($invoice) => (float) $invoice->total_price_to_pay), 2);
 
     return "Nefiskalizovane fakture ({$invoices->count()}):\n{$lines}\n\nUkupno za fiskalizaciju: {$total} EUR";
+}
+
+private function isShowInvoiceItemsRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractInvoiceNumber($message) !== null
+        && (
+            str_contains($normalizedMessage, 'stavke')
+            || str_contains($normalizedMessage, 'stavka')
+            || str_contains($normalizedMessage, 'items')
+            || str_contains($normalizedMessage, 'proizvod')
+            || str_contains($normalizedMessage, 'proizvodi')
+        )
+        && (
+            str_contains($normalizedMessage, 'faktura')
+            || str_contains($normalizedMessage, 'fakture')
+            || str_contains($normalizedMessage, 'račun')
+            || str_contains($normalizedMessage, 'racun')
+            || str_contains($normalizedMessage, 'invoice')
+        );
+}
+
+private function isShowInvoiceRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractInvoiceNumber($message) !== null
+        && (
+            str_contains($normalizedMessage, 'prikazi')
+            || str_contains($normalizedMessage, 'prikaži')
+            || str_contains($normalizedMessage, 'vidi')
+            || str_contains($normalizedMessage, 'pogledaj')
+            || str_contains($normalizedMessage, 'show')
+            || str_contains($normalizedMessage, 'faktura')
+            || str_contains($normalizedMessage, 'fakture')
+            || str_contains($normalizedMessage, 'račun')
+            || str_contains($normalizedMessage, 'racun')
+            || str_contains($normalizedMessage, 'invoice')
+        )
+        && !$this->isCreateInvoiceRequest($message);
+}
+
+private function handleShowInvoiceRequest(string $message): string
+{
+    $invoice = $this->findInvoiceForChat($message);
+    if (!$invoice) {
+        return 'Ne mogu da pronađem tu fakturu. Možeš napisati npr. „prikaži fakturu 1/2026/001/enu” ili dio broja fakture.';
+    }
+
+    $status = $invoice->fic ? "fiskalizovana (FIC: {$invoice->fic})" : 'nije fiskalizovana';
+    $contractText = $invoice->contract ? $invoice->contract->contract_number : '-';
+
+    return "Faktura {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nPeriod: {$invoice->tax_period}\nNačin plaćanja: {$invoice->payment_method_type->value}\nStatus: {$status}\nBroj stavki: {$invoice->items->count()}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR";
+}
+
+private function handleShowInvoiceItemsRequest(string $message): string
+{
+    $invoice = $this->findInvoiceForChat($message);
+    if (!$invoice) {
+        return 'Ne mogu da pronađem tu fakturu. Možeš napisati npr. „prikaži stavke fakture 1/2026/001/enu” ili dio broja fakture.';
+    }
+
+    if ($invoice->items->isEmpty()) {
+        return "Faktura {$invoice->invoice_number} nema stavke.";
+    }
+
+    $lines = $invoice->items->map(function ($item) {
+        $vatRate = $item->vatRate->percentage ?? 0;
+        $base = round((float) $item->quantity * (float) $item->unit_price, 2);
+        $vat = round($base * ((float) $vatRate / 100), 2);
+        $total = round($base + $vat, 2);
+
+        return "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR, PDV {$vatRate}%, ukupno {$total} EUR";
+    })->join("\n");
+
+    return "Stavke fakture {$invoice->invoice_number}:\n{$lines}\n\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR";
+}
+
+private function findInvoiceForChat(string $message)
+{
+    $invoiceNumber = $this->extractInvoiceNumber($message);
+    if ($invoiceNumber === null) {
+        return null;
+    }
+
+    return \App\Models\Invoice::with([
+        'company',
+        'buyer',
+        'contract',
+        'items.product.vatRate',
+        'items.vatRate',
+    ])
+        ->where('invoice_number', $invoiceNumber)
+        ->orWhere('invoice_number', 'like', '%' . $invoiceNumber . '%')
+        ->orderBy('issued_at', 'desc')
+        ->first();
+}
+
+private function extractInvoiceNumber(string $message): ?string
+{
+    if (preg_match('/\b\d+\/\d{4}\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\b/', $message, $matches) === 1) {
+        return $matches[0];
+    }
+
+    if (preg_match('/\b(?:faktura|fakture|račun|racun|invoice)\s+([A-Za-z0-9\/_-]+)\b/iu', $message, $matches) === 1) {
+        return trim($matches[1], " \t\n\r\0\x0B.,;:");
+    }
+
+    return null;
 }
 
 private function isShowContractItemsRequest(string $message): bool
@@ -1550,6 +1709,47 @@ private function formatContractForJson($contract, bool $includeInvoices): array
     })->values()->all();
 
     return $data;
+}
+
+private function callGemini(string $message, string $systemPrompt): string
+{
+    $apiKey = config('services.gemini.key');
+
+    $payload = [
+        'system_instruction' => [
+            'parts' => [['text' => $systemPrompt]]
+        ],
+        'contents' => [
+            ['role' => 'user', 'parts' => [['text' => $message]]]
+        ],
+        'generationConfig' => [
+            'maxOutputTokens' => 500,
+            'temperature'     => 0.7,
+        ]
+    ];
+
+    $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key={$apiKey}");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $data = json_decode($response, true);
+
+    // Izvuci samo ne-thought dijelove odgovora
+    $parts = $data['candidates'][0]['content']['parts'] ?? [];
+    $text = '';
+    foreach ($parts as $part) {
+        if (empty($part['thought'])) {
+            $text .= $part['text'] ?? '';
+        }
+    }
+
+    return trim($text) ?: 'Greška pri odgovoru od Gemini.';
 }
 
 private function callAppleIntelligence(string $message, string $promptDataJson, string $requestId): string
