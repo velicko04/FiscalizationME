@@ -77,6 +77,63 @@ class ChatController extends Controller
         ]);
     }
 
+    if ($this->isContractStatusSummaryRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleContractStatusSummaryRequest();
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'contract_status_summary',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'contract_status_summary']
+        ]);
+    }
+
+    if ($this->isCompanyListRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleCompanyListRequest();
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'company_list',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'company_list']
+        ]);
+    }
+
+    if ($this->isUnfiscalizedInvoicesRequest($message)) {
+        $startTime = microtime(true);
+        $content = $this->handleUnfiscalizedInvoicesRequest();
+        $elapsed = round(microtime(true) - $startTime, 2);
+
+        \Log::info('Chat stats', [
+            'provider'      => $provider,
+            'request_id'    => $requestId,
+            'message'       => $message,
+            'action'        => 'unfiscalized_invoices',
+            'php_elapsed_s' => $elapsed,
+        ]);
+
+        return response()->json([
+            'response' => $content,
+            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'unfiscalized_invoices']
+        ]);
+    }
+
     if ($this->isShowContractInvoicesRequest($message)) {
         $startTime = microtime(true);
         $content = $this->handleShowContractInvoicesRequest($message);
@@ -231,6 +288,144 @@ private function isCreateInvoiceRequest(string $message): bool
         || str_contains($normalizedMessage, 'fakturu')
         || str_contains($normalizedMessage, 'invoice')
     );
+}
+
+private function isContractStatusSummaryRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return (
+        str_contains($normalizedMessage, 'status')
+        || str_contains($normalizedMessage, 'aktiv')
+        || str_contains($normalizedMessage, 'neaktiv')
+        || str_contains($normalizedMessage, 'active')
+        || str_contains($normalizedMessage, 'inactive')
+        || str_contains($normalizedMessage, 'istek')
+        || str_contains($normalizedMessage, 'expired')
+        || str_contains($normalizedMessage, 'koliko')
+    ) && (
+        str_contains($normalizedMessage, 'ugovor')
+        || str_contains($normalizedMessage, 'ugovora')
+        || str_contains($normalizedMessage, 'contracts')
+        || str_contains($normalizedMessage, 'contract')
+    ) && $this->extractContractNumber($message) === null;
+}
+
+private function handleContractStatusSummaryRequest(): string
+{
+    $contracts = \App\Models\Contract::query()
+        ->select('status')
+        ->selectRaw('COUNT(*) as total')
+        ->groupBy('status')
+        ->pluck('total', 'status');
+
+    $total = (int) $contracts->sum();
+    $active = (int) ($contracts['active'] ?? 0);
+    $paused = (int) ($contracts['paused'] ?? 0);
+    $expired = (int) ($contracts['expired'] ?? 0);
+    $other = max(0, $total - $active - $paused - $expired);
+
+    $lines = [
+        "Ukupno ugovora: {$total}",
+        "Aktivni: {$active}",
+        "Pauzirani/neaktivni: {$paused}",
+        "Istekli: {$expired}",
+    ];
+
+    if ($other > 0) {
+        $lines[] = "Ostali statusi: {$other}";
+    }
+
+    return "Statusi ugovora:\n- " . implode("\n- ", $lines);
+}
+
+private function isCompanyListRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return (
+        str_contains($normalizedMessage, 'lista')
+        || str_contains($normalizedMessage, 'listu')
+        || str_contains($normalizedMessage, 'prikazi')
+        || str_contains($normalizedMessage, 'prikaži')
+        || str_contains($normalizedMessage, 'daj')
+        || str_contains($normalizedMessage, 'show')
+        || str_contains($normalizedMessage, 'all')
+        || str_contains($normalizedMessage, 'sve')
+    ) && (
+        str_contains($normalizedMessage, 'firma')
+        || str_contains($normalizedMessage, 'firme')
+        || str_contains($normalizedMessage, 'kompanija')
+        || str_contains($normalizedMessage, 'kompanije')
+        || str_contains($normalizedMessage, 'company')
+        || str_contains($normalizedMessage, 'companies')
+    );
+}
+
+private function handleCompanyListRequest(): string
+{
+    $companies = \App\Models\Company::query()
+        ->orderBy('name')
+        ->get();
+
+    if ($companies->isEmpty()) {
+        return 'U sistemu nema firmi.';
+    }
+
+    $lines = $companies->map(function ($company, $index) {
+        $city = $company->city ?: '-';
+        $taxId = $company->tax_id_number ?: '-';
+
+        return ($index + 1) . ". {$company->name} | PIB: {$taxId} | Grad: {$city}";
+    })->join("\n");
+
+    return "Lista firmi ({$companies->count()}):\n{$lines}";
+}
+
+private function isUnfiscalizedInvoicesRequest(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return (
+        str_contains($normalizedMessage, 'nefiskal')
+        || str_contains($normalizedMessage, 'nije fisk')
+        || str_contains($normalizedMessage, 'nisu fisk')
+        || str_contains($normalizedMessage, 'čeka fisk')
+        || str_contains($normalizedMessage, 'ceka fisk')
+        || str_contains($normalizedMessage, 'unfiscal')
+        || str_contains($normalizedMessage, 'not fiscal')
+    ) && (
+        str_contains($normalizedMessage, 'faktura')
+        || str_contains($normalizedMessage, 'fakture')
+        || str_contains($normalizedMessage, 'račun')
+        || str_contains($normalizedMessage, 'racun')
+        || str_contains($normalizedMessage, 'invoice')
+    );
+}
+
+private function handleUnfiscalizedInvoicesRequest(): string
+{
+    $invoices = \App\Models\Invoice::with(['company', 'buyer', 'contract'])
+        ->whereNull('fic')
+        ->where('invoice_type', '!=', 'CORRECTIVE')
+        ->orderBy('issued_at', 'desc')
+        ->get();
+
+    if ($invoices->isEmpty()) {
+        return 'Nema nefiskalizovanih faktura.';
+    }
+
+    $lines = $invoices->map(function ($invoice) {
+        $contractText = $invoice->contract ? " | Ugovor: {$invoice->contract->contract_number}" : '';
+        $company = $invoice->company->name ?? '-';
+        $buyer = $invoice->buyer->name ?? '-';
+
+        return "- {$invoice->invoice_number}: {$invoice->issued_at->format('Y-m-d')}, {$invoice->total_price_to_pay} EUR | Firma: {$company} | Kupac: {$buyer}{$contractText}";
+    })->join("\n");
+
+    $total = round($invoices->sum(fn($invoice) => (float) $invoice->total_price_to_pay), 2);
+
+    return "Nefiskalizovane fakture ({$invoices->count()}):\n{$lines}\n\nUkupno za fiskalizaciju: {$total} EUR";
 }
 
 private function isShowContractItemsRequest(string $message): bool
