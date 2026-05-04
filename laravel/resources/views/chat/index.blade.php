@@ -202,7 +202,7 @@
     <div class="chat-messages" id="messages">
         <div class="message assistant">
             <div class="message-avatar">🤖</div>
-            <div class="message-bubble">Zdravo! Izaberi jedan od predloga iznad ili napiši svoj upit. Najprije ćemo zategnuti kreiranje ugovora, pa onda fakture i preglede.</div>
+            <div class="message-bubble">Zdravo! Izaberi jedan od predloga iznad ili napiši svoj upit.</div>
         </div>
     </div>
 
