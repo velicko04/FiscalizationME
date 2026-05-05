@@ -13,7 +13,7 @@ class ChatController extends Controller
 
     public function stream(Request $request)
 {
-    set_time_limit(60);
+    set_time_limit(120);
 
     $message = $request->input('message', '');
     $history = $request->input('history', []);
@@ -39,254 +39,7 @@ class ChatController extends Controller
         ]);
     }
 
-    if ($this->isCreateInvoiceRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleCreateInvoiceRequest($request, $message, $requestId);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'create_invoice',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'create_invoice']
-        ]);
-    }
-
-    if ($this->isCreateContractRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleCreateContractRequest($request, $message, $provider, $requestId);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'create_contract',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'create_contract']
-        ]);
-    }
-
-    if ($this->isContractStatusSummaryRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleContractStatusSummaryRequest();
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'contract_status_summary',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'contract_status_summary']
-        ]);
-    }
-
-    if ($this->isCompanyListRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleCompanyListRequest();
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'company_list',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'company_list']
-        ]);
-    }
-
-    if ($this->isUnfiscalizedInvoicesRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleUnfiscalizedInvoicesRequest();
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'unfiscalized_invoices',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'unfiscalized_invoices']
-        ]);
-    }
-
-    if ($this->isShowContractInvoicesRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleShowContractInvoicesRequest($message);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'show_contract_invoices',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract_invoices']
-        ]);
-    }
-
-    if ($this->isShowInvoiceItemsRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleShowInvoiceItemsRequest($message);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'show_invoice_items',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_invoice_items']
-        ]);
-    }
-
-    if ($this->isShowInvoiceRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleShowInvoiceRequest($message);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'show_invoice',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_invoice']
-        ]);
-    }
-
-    if ($this->isShowContractItemsRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleShowContractItemsRequest($message);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'show_contract_items',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract_items']
-        ]);
-    }
-
-    if ($this->isShowContractRequest($message)) {
-        $startTime = microtime(true);
-        $content = $this->handleShowContractRequest($message);
-        $elapsed = round(microtime(true) - $startTime, 2);
-
-        \Log::info('Chat stats', [
-            'provider'      => $provider,
-            'request_id'    => $requestId,
-            'message'       => $message,
-            'action'        => 'show_contract',
-            'php_elapsed_s' => $elapsed,
-        ]);
-
-        return response()->json([
-            'response' => $content,
-            'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'show_contract']
-        ]);
-    }
-
-    $promptDataJson = $this->buildPromptDataJson($message, $provider);
-
-    $systemPrompt = "Ti si asistent za FiscalizationME billing sistem u Crnoj Gori.
-Odgovaraj kratko i konkretno na srpskom jeziku.
-Koristi isključivo podatke iz JSON-a. Ako podatak ne postoji u JSON-u, reci da nemaš taj podatak.
-
-PODACI_JSON:
-{$promptDataJson}";
-
-    $startTime = microtime(true);
-
-    $systemPrompt = $this->buildSystemPrompt();
-
-if ($provider === 'apple') {
-
-    $content = $this->callAppleIntelligence($message, $promptDataJson, $requestId);
-
-    if ($this->isUnsupportedAppleLanguageError($content)) {
-        \Log::warning('LLM Apple unsupported language', [
-            'request_id' => $requestId,
-            'reason' => 'unsupported_language_or_locale',
-            'apple_response' => $content,
-        ]);
-
-        $content = 'Apple Foundation Models trenutno ne podržava srpski/odabrani jezik za ovu sesiju. Za test Apple Intelligence koristi pitanje na engleskom ili promijeni Apple servis da uvijek koristi podržani locale, npr. en_US.';
-
-    } elseif ($this->isAppleContextWindowError($content)) {
-        \Log::warning('LLM Apple context window exceeded', [
-            'request_id' => $requestId,
-            'apple_response' => $content,
-        ]);
-
-        $content = 'Apple Foundation Models ima ograničenje konteksta od oko 4096 tokena. Pokušaj uži upit, npr. za jednu firmu, jedan ugovor ili jednu fakturu.';
-    }
-
-} elseif ($provider === 'gemini') {
-
-    $content = $this->callGemini($message, $systemPrompt, $requestId);
-
-} else {
-
-    // fallback (ollama ili šta god je default)
-    $content = $this->callOllama($message, $history, $systemPrompt, $requestId, 'ollama');
-}
-
-    $elapsed = round(microtime(true) - $startTime, 2);
-
-    \Log::info('Chat stats', [
-        'provider'      => $provider,
-        'request_id'    => $requestId,
-        'message'       => $message,
-        'php_elapsed_s' => $elapsed,
-    ]);
-
-    return response()->json([
-        'response' => $content,
-        'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId]
-    ]);
+    return $this->handleAiRoutedMessage($request, $message, $history, $provider, $requestId);
 }
 
 private function buildPromptDataJson(string $message, string $provider): string
@@ -296,6 +49,213 @@ private function buildPromptDataJson(string $message, string $provider): string
     }
 
     return $this->buildFullPromptDataJson();
+}
+
+private function buildSystemPrompt(string $promptDataJson): string
+{
+    return "Ti si asistent za FiscalizationME billing sistem u Crnoj Gori.
+Odgovaraj kratko i konkretno na srpskom jeziku.
+Koristi isključivo podatke iz JSON-a. Ako podatak ne postoji u JSON-u, reci da nemaš taj podatak.
+
+PODACI_JSON:
+{$promptDataJson}";
+}
+
+private function handleAiRoutedMessage(Request $request, string $message, array $history, string $provider, string $requestId)
+{
+    $startTime = microtime(true);
+    $intent = $this->classifyChatIntent($message, $provider, $requestId);
+
+    if (isset($intent['error'])) {
+        return $this->chatJsonResponse($intent['error'], $provider, $requestId, 'intent_error', $startTime);
+    }
+
+    $intentName = $intent['intent'] ?? 'unknown';
+    $confidence = (float) ($intent['confidence'] ?? 0);
+
+    \Log::info('AI intent selected', [
+        'request_id' => $requestId,
+        'provider' => $provider,
+        'message' => $message,
+        'intent' => $intentName,
+        'confidence' => $confidence,
+        'raw_intent' => $intent,
+    ]);
+
+    if ($confidence < 0.45 || $intentName === 'unknown') {
+        $content = "Mogu pomoći oko ovih akcija: kreiranje ugovora, kreiranje fakture, pregled ugovora, pregled faktura/stavki, lista firmi, statusi ugovora i nefiskalizovane fakture. Napiši šta želiš u vezi toga.";
+
+        return $this->chatJsonResponse($content, $provider, $requestId, 'unknown_intent', $startTime);
+    }
+
+    $content = match ($intentName) {
+        'small_talk' => 'Tu sam. Mogu pomoći oko ugovora, faktura, firmi i fiskalizacije.',
+        'create_contract' => $this->handleCreateContractRequest($request, $message, $provider, $requestId),
+        'create_invoice' => $this->handleCreateInvoiceRequest($request, $message, $provider, $requestId),
+        'show_contract' => $this->handleShowContractRequest($message),
+        'show_contract_items' => $this->handleShowContractItemsRequest($message),
+        'show_contract_invoices' => $this->handleShowContractInvoicesRequest($message),
+        'show_last_invoice' => $this->handleShowContractInvoicesRequest($this->ensureLastInvoiceWording($message)),
+        'show_invoice' => $this->handleShowInvoiceRequest($message),
+        'show_invoice_items' => $this->handleShowInvoiceItemsRequest($message),
+        'send_invoice_email' => $this->handleSendInvoiceEmailRequest($message, $requestId),
+        'download_invoice_pdf' => $this->handleDownloadInvoicePdfRequest($message),
+        'contract_status_summary' => $this->handleContractStatusSummaryRequest(),
+        'company_list' => $this->handleCompanyListRequest(),
+        'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest(),
+        default => "Mogu pomoći oko ovih akcija: kreiranje ugovora, kreiranje fakture, pregled ugovora, pregled faktura/stavki, lista firmi, statusi ugovora i nefiskalizovane fakture.",
+    };
+
+    if (is_array($content)) {
+        return $this->chatJsonResponse($content['response'], $provider, $requestId, $intentName, $startTime, $content);
+    }
+
+    return $this->chatJsonResponse($content, $provider, $requestId, $intentName, $startTime);
+}
+
+private function classifyChatIntent(string $message, string $provider, string $requestId): array
+{
+    $systemPrompt = "Ti si intent router za FiscalizationME aplikaciju.
+Vrati samo validan JSON, bez markdowna i bez objašnjenja.
+Ne izvršavaš akcije i ne odgovaraš korisniku.
+Tvoj posao je samo da prepoznaš jednu od dozvoljenih namjera.
+
+Dozvoljeni intent-i:
+- small_talk: pozdrav ili provjera da li je asistent tu
+- create_contract: korisnik želi dodati/napraviti/kreirati ugovor
+- create_invoice: korisnik želi dodati/napraviti/kreirati/fakturisati fakturu za ugovor
+- show_contract: korisnik želi pregled konkretnog ugovora
+- show_contract_items: korisnik želi stavke konkretnog ugovora
+- show_contract_invoices: korisnik želi fakture konkretnog ugovora
+- show_last_invoice: korisnik želi zadnju/posljednju/najnoviju fakturu za ugovor
+- show_invoice: korisnik želi pregled konkretne fakture
+- show_invoice_items: korisnik želi stavke konkretne fakture
+- send_invoice_email: korisnik želi poslati fakturu/PDF fakture na email/mejl adresu
+- download_invoice_pdf: korisnik želi PDF/preuzimanje/download fakture, uključujući zadnju fakturu za ugovor
+- contract_status_summary: korisnik pita koliko ima aktivnih/neaktivnih/isteklih ugovora ili status ugovora u zbiru
+- company_list: korisnik traži listu firmi/kompanija
+- unfiscalized_invoices: korisnik traži nefiskalizovane fakture ili fakture koje čekaju fiskalizaciju
+- unknown: sve van navedenog opsega
+
+Vrati JSON oblika:
+{\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"kratko\"}";
+
+    $content = match ($provider) {
+        'apple' => $this->callAppleIntentClassifier($message, $systemPrompt, $requestId),
+        'gemini' => $this->callGemini($message, $systemPrompt, $requestId, 'gemini_intent_classifier'),
+        default => $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_intent_classifier'),
+    };
+
+    if (
+        str_starts_with($content, 'Greška')
+        || str_contains($content, 'unsupportedLanguageOrLocale')
+        || str_contains($content, 'API ključ')
+    ) {
+        return ['error' => $content];
+    }
+
+    $decoded = $this->decodeJsonPayload($content, $requestId, $provider, $provider . '_intent_classifier');
+
+    if (isset($decoded['error'])) {
+        return $decoded;
+    }
+
+    $allowedIntents = [
+        'small_talk',
+        'create_contract',
+        'create_invoice',
+        'show_contract',
+        'show_contract_items',
+        'show_contract_invoices',
+        'show_last_invoice',
+        'show_invoice',
+        'show_invoice_items',
+        'send_invoice_email',
+        'download_invoice_pdf',
+        'contract_status_summary',
+        'company_list',
+        'unfiscalized_invoices',
+        'unknown',
+    ];
+
+    if (!in_array($decoded['intent'] ?? null, $allowedIntents, true)) {
+        return ['intent' => 'unknown', 'confidence' => 0, 'reason' => 'Intent nije dozvoljen.'];
+    }
+
+    return $decoded;
+}
+
+private function callAppleIntentClassifier(string $message, string $systemPrompt, string $requestId): string
+{
+    $prompt = "{$systemPrompt}\n\nUSER_MESSAGE:\n{$message}";
+
+    $this->logPromptRequest($requestId, 'apple', 'apple_intent_classifier', [
+        'prompt' => $prompt,
+        'prompt_length' => strlen($prompt),
+    ]);
+
+    $ch = curl_init('http://localhost:8765');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $prompt);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false || $curlErrno !== 0) {
+        $this->logPromptError($requestId, 'apple', 'apple_intent_classifier', [
+            'http_code' => $httpCode,
+            'curl_errno' => $curlErrno,
+            'curl_error' => $curlError,
+        ]);
+
+        return 'Greška u komunikaciji sa Apple Intelligence servisom: ' . ($curlError ?: 'nepoznata greška.');
+    }
+
+    $this->logPromptResponse($requestId, 'apple', 'apple_intent_classifier', [
+        'http_code' => $httpCode,
+        'response' => $response,
+        'response_length' => strlen($response),
+    ]);
+
+    return $response ?: 'Greška u komunikaciji sa Apple Intelligence servisom.';
+}
+
+private function ensureLastInvoiceWording(string $message): string
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    if (
+        str_contains($normalizedMessage, 'zadnja')
+        || str_contains($normalizedMessage, 'poslednja')
+        || str_contains($normalizedMessage, 'posljednja')
+        || str_contains($normalizedMessage, 'najnovija')
+        || str_contains($normalizedMessage, 'last')
+    ) {
+        return $message;
+    }
+
+    return $message . ' zadnja faktura';
+}
+
+private function chatJsonResponse(string $content, string $provider, string $requestId, string $action, float $startTime, array $extra = [])
+{
+    $elapsed = round(microtime(true) - $startTime, 2);
+
+    \Log::info('Chat stats', [
+        'provider' => $provider,
+        'request_id' => $requestId,
+        'action' => $action,
+        'php_elapsed_s' => $elapsed,
+    ]);
+
+    return response()->json(array_merge([
+        'response' => $content,
+        'stats' => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => $action],
+    ], $extra));
 }
 
 private function isCreateContractRequest(string $message): bool
@@ -554,6 +514,142 @@ private function handleShowInvoiceItemsRequest(string $message): string
     return "Stavke fakture {$invoice->invoice_number}:\n{$lines}\n\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR";
 }
 
+private function handleDownloadInvoicePdfRequest(string $message): array
+{
+    $invoice = $this->findInvoiceForPdfRequest($message);
+
+    if (!$invoice) {
+        return [
+            'response' => 'Ne mogu da pronađem fakturu za PDF. Možeš napisati npr. „daj mi PDF zadnje fakture za ugovor CTR-001” ili „preuzmi fakturu 1/2026/001/enu”.',
+        ];
+    }
+
+    $downloadUrl = route('invoice.pdf', ['id' => $invoice->id]);
+    $contractText = $invoice->contract ? " za ugovor {$invoice->contract->contract_number}" : '';
+
+    return [
+        'response' => "Spreman je PDF fakture {$invoice->invoice_number}{$contractText}.\nKlikni na dugme za preuzimanje.",
+        'download_url' => $downloadUrl,
+        'download_label' => 'Preuzmi PDF',
+    ];
+}
+
+private function handleSendInvoiceEmailRequest(string $message, string $requestId): string
+{
+    $email = $this->extractEmailAddress($message);
+    if (!$email) {
+        return 'Mogu da pošaljem fakturu na mejl, samo mi treba validna email adresa. Npr. „pošalji zadnju fakturu za ugovor CTR-001 na mejl test@example.com”.';
+    }
+
+    $invoice = $this->findInvoiceForPdfRequest($message);
+    if (!$invoice) {
+        return 'Ne mogu da pronađem fakturu za slanje. Možeš napisati npr. „pošalji zadnju fakturu za ugovor CTR-001 na mejl test@example.com” ili „pošalji fakturu za april za CTR-001 na mejl test@example.com”.';
+    }
+
+    try {
+        $invoice->loadMissing([
+            'items.product.vatRate',
+            'company',
+            'buyer',
+            'user',
+            'contract',
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
+        $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
+        $subject = "Faktura {$invoice->invoice_number}";
+        $body = "Poštovani,\n\nU prilogu se nalazi faktura {$invoice->invoice_number}.\n\nSrdačno,\nFiscalizationME";
+
+        \Illuminate\Support\Facades\Mail::raw($body, function ($mail) use ($email, $subject, $pdf, $filename) {
+            $mail->to($email)
+                ->subject($subject)
+                ->attachData($pdf->output(), $filename, ['mime' => 'application/pdf']);
+        });
+
+        \Log::info('LLM action completed', [
+            'request_id' => $requestId,
+            'action' => 'send_invoice_email',
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'email' => $email,
+            'mailer' => config('mail.default'),
+        ]);
+
+        $contractText = $invoice->contract ? " za ugovor {$invoice->contract->contract_number}" : '';
+        $mailerNote = config('mail.default') === 'log' ? "\nNapomena: MAIL_MAILER je trenutno log, pa je email upisan u log umjesto stvarnog slanja." : '';
+
+        return "Poslao sam fakturu {$invoice->invoice_number}{$contractText} na {$email}.{$mailerNote}";
+    } catch (\Throwable $e) {
+        \Log::error('LLM action failed', [
+            'request_id' => $requestId,
+            'action' => 'send_invoice_email',
+            'invoice_id' => $invoice->id ?? null,
+            'email' => $email,
+            'error' => $e->getMessage(),
+        ]);
+
+        return 'Nisam uspio da pošaljem fakturu na mejl: ' . $e->getMessage();
+    }
+}
+
+private function extractEmailAddress(string $message): ?string
+{
+    if (preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $message, $matches) !== 1) {
+        return null;
+    }
+
+    $email = strtolower(trim($matches[0], " \t\n\r\0\x0B.,;:"));
+
+    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
+}
+
+private function findInvoiceForPdfRequest(string $message)
+{
+    $invoice = $this->findInvoiceForChat($message);
+    if ($invoice) {
+        return $invoice;
+    }
+
+    $contract = $this->findContractForChat($message);
+    if (!$contract) {
+        return null;
+    }
+
+    $period = $this->extractInvoicePeriod($message);
+
+    return \App\Models\Invoice::with([
+        'company',
+        'buyer',
+        'contract',
+        'user',
+        'items.product.vatRate',
+        'items.vatRate',
+    ])
+        ->where('contract_id', $contract->id)
+        ->when($period, fn($query) => $query
+            ->whereMonth('issued_at', $period['month'])
+            ->whereYear('issued_at', $period['year']))
+        ->when(
+            $this->isFirstInvoiceQuestion($message),
+            fn($query) => $query->orderBy('issued_at')->orderBy('id'),
+            fn($query) => $query->orderByDesc('issued_at')->orderByDesc('id')
+        )
+        ->first();
+}
+
+private function isFirstInvoiceQuestion(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return str_contains($normalizedMessage, 'prva')
+        || str_contains($normalizedMessage, 'prvu')
+        || str_contains($normalizedMessage, 'prve')
+        || str_contains($normalizedMessage, 'najstarija')
+        || str_contains($normalizedMessage, 'najstariju')
+        || str_contains($normalizedMessage, 'oldest')
+        || str_contains($normalizedMessage, 'first');
+}
+
 private function findInvoiceForChat(string $message)
 {
     $invoiceNumber = $this->extractInvoiceNumber($message);
@@ -698,6 +794,7 @@ private function isLastInvoiceQuestion(string $message): bool
 private function extractInvoicePeriod(string $message): ?array
 {
     $normalizedMessage = mb_strtolower($message);
+    $year = preg_match('/\b(20\d{2})\b/', $message, $yearMatches) === 1 ? (int) $yearMatches[1] : now()->year;
 
     if (preg_match('/\b(\d{1,2})\/(\d{4})\b/', $message, $matches) === 1) {
         return ['month' => (int) $matches[1], 'year' => (int) $matches[2]];
@@ -705,6 +802,36 @@ private function extractInvoicePeriod(string $message): ?array
 
     if (preg_match('/\b(\d{4})-(\d{1,2})(?:-\d{1,2})?\b/', $message, $matches) === 1) {
         return ['month' => (int) $matches[2], 'year' => (int) $matches[1]];
+    }
+
+    if (preg_match('/\b(?:mjesec|mesec)\s*(\d{1,2})\b/u', $normalizedMessage, $matches) === 1
+        || preg_match('/\b(\d{1,2})\.?\s*(?:mjesec|mesec)\b/u', $normalizedMessage, $matches) === 1
+    ) {
+        $month = (int) $matches[1];
+        if ($month >= 1 && $month <= 12) {
+            return ['month' => $month, 'year' => $year];
+        }
+    }
+
+    $ordinalMonths = [
+        'prvi' => 1, 'prvom' => 1,
+        'drugi' => 2, 'drugom' => 2,
+        'treci' => 3, 'treći' => 3, 'trecem' => 3, 'trećem' => 3,
+        'cetvrti' => 4, 'četvrti' => 4, 'cetvrtom' => 4, 'četvrtom' => 4,
+        'peti' => 5, 'petom' => 5,
+        'sesti' => 6, 'šesti' => 6, 'sestom' => 6, 'šestom' => 6,
+        'sedmi' => 7, 'sedmom' => 7,
+        'osmi' => 8, 'osmom' => 8,
+        'deveti' => 9, 'devetom' => 9,
+        'deseti' => 10, 'desetom' => 10,
+        'jedanaesti' => 11, 'jedanaestom' => 11,
+        'dvanaesti' => 12, 'dvanaestom' => 12,
+    ];
+
+    foreach ($ordinalMonths as $word => $month) {
+        if (preg_match('/\b' . preg_quote($word, '/') . '\s+(?:mjesec|mesec)\b/u', $normalizedMessage) === 1) {
+            return ['month' => $month, 'year' => $year];
+        }
     }
 
     $months = [
@@ -724,9 +851,7 @@ private function extractInvoicePeriod(string $message): ?array
 
     foreach ($months as $name => $month) {
         if (str_contains($normalizedMessage, $name)) {
-            preg_match('/\b(20\d{2})\b/', $message, $yearMatches);
-
-            return ['month' => $month, 'year' => isset($yearMatches[1]) ? (int) $yearMatches[1] : now()->year];
+            return ['month' => $month, 'year' => $year];
         }
     }
 
@@ -867,11 +992,18 @@ private function handlePendingActionResponse(Request $request, string $message, 
     return 'Nacrt akcije nije prepoznat. Pošalji zahtjev ponovo.';
 }
 
-private function handleCreateInvoiceRequest(Request $request, string $message, string $requestId): string
+private function handleCreateInvoiceRequest(Request $request, string $message, string $provider, string $requestId): string
 {
-    $contractNumber = $this->extractContractNumber($message);
+    $contextJson = $this->buildInvoiceCreationContextJson($message);
+    $extracted = $this->extractInvoicePayloadWithAi($message, $contextJson, $provider, $requestId);
+
+    if (isset($extracted['error'])) {
+        return $extracted['error'];
+    }
+
+    $contractNumber = $this->normalizeExtractedContractNumber($extracted['contract_number'] ?? null);
     if ($contractNumber === null) {
-        return "Mogu da napravim fakturu, samo mi treba broj ugovora. Možeš napisati prirodno, npr. „napravi fakturu za ctr 012” ili „fakturiši ugovor 12 za april 2026”.";
+        return "Mogu da napravim fakturu, samo mi treba da prepoznam ugovor. Napiši prirodno, npr. „napravi fakturu za ugovor CTR-012” ili „fakturiši ugovor 12 za april 2026”.";
     }
 
     $contract = \App\Models\Contract::with(['items.product.vatRate', 'company.users', 'buyer'])
@@ -890,7 +1022,7 @@ private function handleCreateInvoiceRequest(Request $request, string $message, s
         return "Faktura nije kreirana jer ugovor {$contractNumber} nema stavke.";
     }
 
-    $issueDate = $this->extractInvoiceIssueDate($message);
+    $issueDate = $this->resolveInvoiceIssueDateFromPayload($extracted);
 
     if ($contract->start_date && $issueDate->lt($contract->start_date)) {
         return "Faktura nije kreirana jer je datum {$issueDate->toDateString()} prije početka ugovora {$contract->start_date->toDateString()}.";
@@ -914,6 +1046,97 @@ private function handleCreateInvoiceRequest(Request $request, string $message, s
     ]);
 
     return $preview . "\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži, pa pošalji izmijenjen zahtjev.";
+}
+
+private function buildInvoiceCreationContextJson(string $message): string
+{
+    $contractNumber = $this->extractContractNumber($message);
+    $query = \App\Models\Contract::with(['company', 'buyer'])->orderByDesc('id');
+
+    if ($contractNumber !== null) {
+        $query->where('contract_number', $contractNumber);
+    } else {
+        $query->take(25);
+    }
+
+    $contracts = $query->get()
+        ->map(fn($contract) => [
+            'contract_number' => $contract->contract_number,
+            'status' => $contract->status,
+            'start_date' => $contract->start_date ? $contract->start_date->toDateString() : null,
+            'end_date' => $contract->end_date ? $contract->end_date->toDateString() : null,
+            'billing_frequency' => $contract->billing_frequency,
+            'company_name' => $contract->company->name ?? null,
+            'buyer_name' => $contract->buyer->name ?? null,
+        ])
+        ->values()
+        ->all();
+
+    return json_encode([
+        'current_date' => now()->toDateString(),
+        'contracts' => $contracts,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+private function extractInvoicePayloadWithAi(string $message, string $contextJson, string $provider, string $requestId): array
+{
+    $systemPrompt = "Ti izvlačiš podatke za pripremu fakture u FiscalizationME aplikaciji.
+Vrati samo validan JSON bez markdowna i bez objašnjenja.
+Ne kreiraš fakturu i ne odgovaraš korisniku.
+Iz korisničke poruke prepoznaj ugovor i opcioni datum/period fakture.
+Koristi ugovore iz konteksta za normalizaciju broja ugovora. Ako korisnik napiše 'ctr 12', 'ctr012', 'ugovor 12' ili slično, vrati postojeći contract_number iz konteksta ako postoji.
+Ako datum ili period nije naveden, issue_date je null.
+Ako korisnik navede mjesec i godinu, issue_date neka bude prvi dan tog mjeseca.
+Ako korisnik navede samo relativni period (npr. ovaj mjesec, prošli mjesec), koristi current_date iz konteksta.
+
+KONTEKST:
+{$contextJson}
+
+Vrati JSON oblika:
+{\"contract_number\": string|null, \"issue_date\": \"YYYY-MM-DD\"|null}";
+
+    $content = match ($provider) {
+        'apple' => $this->callAppleJsonExtractor($message, $systemPrompt, $requestId, 'apple_create_invoice_extract'),
+        'gemini' => $this->callGemini($message, $systemPrompt, $requestId, 'gemini_create_invoice_extract'),
+        default => $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_create_invoice_extract'),
+    };
+
+    if (str_starts_with($content, 'Greška') || str_contains($content, 'unsupportedLanguageOrLocale')) {
+        return ['error' => $content];
+    }
+
+    return $this->decodeJsonPayload(
+        $content,
+        $requestId,
+        $provider,
+        $provider . '_create_invoice_extract',
+        'Model nije vratio validan JSON za pripremu fakture. Pokušaj prirodno navesti ugovor i period, npr. „napravi fakturu za ugovor CTR-012 za april 2026”.'
+    );
+}
+
+private function normalizeExtractedContractNumber($contractNumber): ?string
+{
+    if (!is_string($contractNumber) || trim($contractNumber) === '') {
+        return null;
+    }
+
+    $resolved = $this->extractContractNumber($contractNumber);
+    if ($resolved !== null) {
+        return $resolved;
+    }
+
+    return trim($contractNumber);
+}
+
+private function resolveInvoiceIssueDateFromPayload(array $payload): \Carbon\Carbon
+{
+    $issueDate = $payload['issue_date'] ?? null;
+
+    if (is_string($issueDate) && trim($issueDate) !== '' && strtotime($issueDate)) {
+        return \Carbon\Carbon::parse($issueDate)->startOfDay();
+    }
+
+    return \Carbon\Carbon::today();
 }
 
 private function buildInvoicePreviewFromContract($contract, \Carbon\Carbon $issueDate): string
@@ -1038,10 +1261,8 @@ private function createInvoiceFromContract($contract, \Carbon\Carbon $issueDate,
 
 private function handleCreateContractRequest(Request $request, string $message, string $provider, string $requestId): string
 {
-    $contextJson = $this->buildContractCreationContextJson();
-    $extracted = $provider === 'apple'
-        ? $this->extractContractPayloadWithApple($message, $contextJson, $requestId)
-        : $this->extractContractPayloadWithOllama($message, $contextJson, $requestId);
+    $contextJson = $this->buildContractCreationContextJson($message);
+    $extracted = $this->extractContractPayloadWithAi($message, $contextJson, $provider, $requestId);
 
     if (isset($extracted['error'])) {
         return $extracted['error'];
@@ -1049,7 +1270,7 @@ private function handleCreateContractRequest(Request $request, string $message, 
 
     $validationErrors = $this->validateContractPayload($extracted, $message);
     if ($validationErrors !== []) {
-        return "Ne mogu još da pripremim ugovor. Nedostaje ili nije validno:\n- " . implode("\n- ", $validationErrors) . "\n\nMožeš napisati prirodno, npr. „napravi ugovor između HardNet DOO i Crnogorski Telekom Servis od 29.04.2026 do 29.04.2027, sa 1 Internet paket i 2 Magenta paket”.";
+        return "Ne mogu još da pripremim ugovor. Nedostaje ili nije validno:\n- " . implode("\n- ", $validationErrors) . "\n\nMožeš napisati prirodno, npr. „napravi ugovor između HardNet DOO i Crnogorski Telekom Servis od 29.04.2026 do 29.04.2027, sa 1 Internet paket i 2 Magenta paket” ili „... sa 1 Hosting paket po 15 EUR”.";
     }
 
     if (empty($extracted['contract_number'])) {
@@ -1065,11 +1286,13 @@ private function handleCreateContractRequest(Request $request, string $message, 
     return $this->buildContractPreviewFromPayload($extracted, $message) . "\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži, pa pošalji izmijenjen zahtjev.";
 }
 
-private function buildContractCreationContextJson(): string
+private function buildContractCreationContextJson(string $message): string
 {
     $companies = \App\Models\Company::query()
         ->orderBy('name')
         ->get(['id', 'name', 'tax_id_number'])
+        ->filter(fn($company) => $this->entityMatchesMessage($company->name, $message))
+        ->whenEmpty(fn($collection) => \App\Models\Company::query()->orderBy('name')->take(30)->get(['id', 'name', 'tax_id_number']))
         ->map(fn($company) => [
             'id' => $company->id,
             'name' => $company->name,
@@ -1081,6 +1304,8 @@ private function buildContractCreationContextJson(): string
     $buyers = \App\Models\Buyer::query()
         ->orderBy('name')
         ->get(['id', 'name', 'tax_id_number'])
+        ->filter(fn($buyer) => $this->entityMatchesMessage($buyer->name, $message))
+        ->whenEmpty(fn($collection) => \App\Models\Buyer::query()->orderBy('name')->take(30)->get(['id', 'name', 'tax_id_number']))
         ->map(fn($buyer) => [
             'id' => $buyer->id,
             'name' => $buyer->name,
@@ -1092,6 +1317,8 @@ private function buildContractCreationContextJson(): string
     $products = \App\Models\Product::with('vatRate')
         ->orderBy('name')
         ->get()
+        ->filter(fn($product) => $this->entityMatchesMessage($product->name, $message))
+        ->whenEmpty(fn($collection) => \App\Models\Product::with('vatRate')->orderBy('name')->take(30)->get())
         ->map(fn($product) => [
             'id' => $product->id,
             'name' => $product->name,
@@ -1104,11 +1331,23 @@ private function buildContractCreationContextJson(): string
         ->values()
         ->all();
 
+    $vatRates = \App\Models\VatRate::query()
+        ->orderBy('percentage')
+        ->get(['id', 'name', 'percentage'])
+        ->map(fn($vatRate) => [
+            'id' => $vatRate->id,
+            'name' => $vatRate->name,
+            'percentage' => $vatRate->percentage,
+        ])
+        ->values()
+        ->all();
+
     return json_encode([
         'current_date' => now()->toDateString(),
         'companies' => $companies,
         'buyers' => $buyers,
         'products' => $products,
+        'vat_rates' => $vatRates,
         'allowed_values' => [
             'billing_frequency' => ['monthly', 'quarterly', 'yearly'],
             'status' => ['active', 'paused', 'expired'],
@@ -1118,22 +1357,53 @@ private function buildContractCreationContextJson(): string
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
-private function extractContractPayloadWithApple(string $message, string $contextJson, string $requestId): array
+private function entityMatchesMessage(?string $name, string $message): bool
 {
-    $prompt = "Extract contract creation data from the user message.
-Return only valid JSON. Do not use markdown. Do not explain.
-Use IDs from the provided context when company, buyer, or product names match.
-If a contract_number is not provided, set it to null.
-If issue_day is missing, infer it from start_date day; if still unknown, use 1.
-If billing_frequency is missing, use monthly.
-If status is missing, use active.
-If default_type_of_invoice is missing, use NONCASH.
-If default_payment_method is missing, use ACCOUNT.
-Do not invent contract items. Only extract items explicitly mentioned in USER_MESSAGE.
-If USER_MESSAGE does not explicitly mention any product/service/item, return items as an empty array.
-If item quantity is missing for an explicitly mentioned item, use 1.
-If item unit_price is missing for an explicitly mentioned item, use the matched product price.
-Required JSON schema:
+    if (!$name) {
+        return false;
+    }
+
+    $normalizedName = mb_strtolower($name);
+    $normalizedMessage = mb_strtolower($message);
+    $compactName = preg_replace('/\s+/', '', $normalizedName);
+    $compactMessage = preg_replace('/\s+/', '', $normalizedMessage);
+
+    if (str_contains($normalizedMessage, $normalizedName) || str_contains($compactMessage, $compactName)) {
+        return true;
+    }
+
+    $tokens = preg_split('/[^\p{L}\p{N}]+/u', $normalizedName, -1, PREG_SPLIT_NO_EMPTY);
+    foreach ($tokens as $token) {
+        if (mb_strlen($token) >= 4 && str_contains($normalizedMessage, $token)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+private function extractContractPayloadWithAi(string $message, string $contextJson, string $provider, string $requestId): array
+{
+    $systemPrompt = "Ti izvlačiš podatke za pripremu ugovora u FiscalizationME aplikaciji.
+Vrati samo validan JSON bez markdowna i bez objašnjenja.
+Ne kreiraš ugovor i ne odgovaraš korisniku.
+Koristi ID-jeve iz konteksta kada prepoznaš firmu, kupca ili proizvod.
+Ako broj ugovora nije naveden, contract_number je null.
+Ako issue_day nije naveden, koristi dan iz start_date, a ako ga nema koristi 1.
+Ako billing_frequency nije naveden, koristi monthly.
+Ako status nije naveden, koristi active.
+Ako default_type_of_invoice nije naveden, koristi NONCASH.
+Ako default_payment_method nije naveden, koristi ACCOUNT.
+Ne izmišljaj stavke ugovora. Izvuci samo stavke koje su eksplicitno navedene u korisničkoj poruci.
+Ako korisnička poruka ne pominje nijedan proizvod/uslugu/stavku, vrati items kao prazan niz.
+Ako količina eksplicitno navedene stavke nije navedena, koristi 1.
+Ako cijena eksplicitno navedene postojeće stavke nije navedena, koristi cijenu pronađenog proizvoda.
+Ako korisnik navede novu stavku koja ne postoji u proizvodima, product_id je null, name je korisnikov naziv, price mora biti cijena iz poruke, a vat_rate_id koristi najbližu stopu iz konteksta ili 1.
+
+KONTEKST:
+{$contextJson}
+
+Vrati JSON oblika:
 {
   \"contract_number\": string|null,
   \"company_id\": number|null,
@@ -1146,15 +1416,26 @@ Required JSON schema:
   \"default_type_of_invoice\": \"NONCASH\"|\"CASH\",
   \"default_payment_method\": \"ACCOUNT\"|\"CARD\"|\"BANKNOTE\"|\"OTHER\"|\"VOUCHER\"|\"COMPENSATION\",
   \"items\": [{\"product_id\": number|null, \"name\": string, \"code\": string|null, \"quantity\": number, \"price\": number, \"vat_rate_id\": number|null}]
+}";
+
+    $content = match ($provider) {
+        'apple' => $this->callAppleJsonExtractor($message, $systemPrompt, $requestId, 'apple_create_contract_extract'),
+        'gemini' => $this->callGemini($message, $systemPrompt, $requestId, 'gemini_create_contract_extract'),
+        default => $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_create_contract_extract'),
+    };
+
+    if (str_starts_with($content, 'Greška') || str_contains($content, 'unsupportedLanguageOrLocale')) {
+        return ['error' => $content];
+    }
+
+    return $this->decodeJsonPayload($content, $requestId, $provider, $provider . '_create_contract_extract');
 }
 
-CONTEXT:
-{$contextJson}
+private function callAppleJsonExtractor(string $message, string $systemPrompt, string $requestId, string $promptType): string
+{
+    $prompt = "{$systemPrompt}\n\nUSER_MESSAGE:\n{$message}";
 
-USER_MESSAGE:
-{$message}";
-
-    $this->logPromptRequest($requestId, 'apple', 'apple_create_contract_extract', [
+    $this->logPromptRequest($requestId, 'apple', $promptType, [
         'prompt' => $prompt,
         'prompt_length' => strlen($prompt),
     ]);
@@ -1171,57 +1452,25 @@ USER_MESSAGE:
     curl_close($ch);
 
     if ($response === false || $curlErrno !== 0) {
-        $this->logPromptError($requestId, 'apple', 'apple_create_contract_extract', [
+        $this->logPromptError($requestId, 'apple', $promptType, [
             'http_code' => $httpCode,
             'curl_errno' => $curlErrno,
             'curl_error' => $curlError,
         ]);
 
-        return ['error' => 'Apple servis nije dostupan: ' . ($curlError ?: 'nepoznata greška.')];
+        return 'Greška u komunikaciji sa Apple Intelligence servisom: ' . ($curlError ?: 'nepoznata greška.');
     }
 
-    $this->logPromptResponse($requestId, 'apple', 'apple_create_contract_extract', [
+    $this->logPromptResponse($requestId, 'apple', $promptType, [
         'http_code' => $httpCode,
         'response' => $response,
         'response_length' => strlen($response),
     ]);
 
-    if ($this->isUnsupportedAppleLanguageError($response) || $this->isAppleContextWindowError($response)) {
-        return ['error' => $response];
-    }
-
-    return $this->decodeJsonPayload($response, $requestId, 'apple', 'apple_create_contract_extract');
+    return $response ?: 'Greška u komunikaciji sa Apple Intelligence servisom.';
 }
 
-private function extractContractPayloadWithOllama(string $message, string $contextJson, string $requestId): array
-{
-    $systemPrompt = "Ti izvlačiš podatke za kreiranje ugovora.
-Vrati samo validan JSON bez markdowna i bez objašnjenja.
-Koristi ID-jeve iz konteksta kada prepoznaš firmu, kupca ili proizvod.
-Ako broj ugovora nije naveden, contract_number je null.
-Ako issue_day nije naveden, koristi dan iz start_date, a ako ga nema koristi 1.
-Ako billing_frequency nije naveden, koristi monthly.
-Ako status nije naveden, koristi active.
-Ako default_type_of_invoice nije naveden, koristi NONCASH.
-Ako default_payment_method nije naveden, koristi ACCOUNT.
-Ne izmišljaj stavke ugovora. Izvuci samo stavke koje su eksplicitno navedene u korisničkoj poruci.
-Ako korisnička poruka ne pominje nijedan proizvod/uslugu/stavku, vrati items kao prazan niz.
-Ako količina eksplicitno navedene stavke nije navedena, koristi 1.
-Ako cijena eksplicitno navedene stavke nije navedena, koristi cijenu pronađenog proizvoda.
-
-KONTEKST:
-{$contextJson}";
-
-    $content = $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_create_contract_extract');
-
-    if (str_starts_with($content, 'Greška')) {
-        return ['error' => $content];
-    }
-
-    return $this->decodeJsonPayload($content, $requestId, 'ollama', 'ollama_create_contract_extract');
-}
-
-private function decodeJsonPayload(string $content, string $requestId, string $provider, string $promptType): array
+private function decodeJsonPayload(string $content, string $requestId, string $provider, string $promptType, ?string $errorMessage = null): array
 {
     $json = trim($content);
     $json = preg_replace('/^```(?:json)?\s*/i', '', $json);
@@ -1240,7 +1489,7 @@ private function decodeJsonPayload(string $content, string $requestId, string $p
             'raw_response' => $content,
         ]);
 
-        return ['error' => 'Model nije vratio validan JSON za kreiranje ugovora. Pokušaj precizniji prompt sa firmom, kupcem, datumima i stavkama.'];
+        return ['error' => $errorMessage ?: 'Model nije vratio validan JSON za kreiranje ugovora. Pokušaj precizniji prompt sa firmom, kupcem, datumima i stavkama.'];
     }
 
     return $data;
@@ -1274,7 +1523,7 @@ private function validateContractPayload(array $payload, string $message): array
         $errors[] = 'mora postojati bar jedna stavka ugovora';
     }
 
-    if (!$this->messageMentionsContractItems($message)) {
+    if (!$this->messageMentionsContractItems($message, $payload['items'] ?? [])) {
         $errors[] = 'u poruci moraju biti eksplicitno navedene stavke ugovora; neću automatski birati proizvode iz kataloga';
     }
 
@@ -1304,12 +1553,15 @@ private function validateContractPayload(array $payload, string $message): array
         if (!isset($item['price']) || (float) $item['price'] < 0) {
             $errors[] = 'stavka ' . ($index + 1) . ' nema validnu cijenu';
         }
+        if (empty($item['product_id']) && (!isset($item['price']) || (float) $item['price'] <= 0)) {
+            $errors[] = 'nova stavka ' . ($index + 1) . ' mora imati cijenu jer ne postoji u bazi proizvoda';
+        }
     }
 
     return $errors;
 }
 
-private function messageMentionsContractItems(string $message): bool
+private function messageMentionsContractItems(string $message, array $items = []): bool
 {
     $normalizedMessage = mb_strtolower($message);
 
@@ -1325,6 +1577,17 @@ private function messageMentionsContractItems(string $message): bool
         || str_contains($normalizedMessage, 'product')
         || str_contains($normalizedMessage, 'service')
     ) {
+        return true;
+    }
+
+    foreach ($items as $item) {
+        $itemName = $item['name'] ?? null;
+        if (is_string($itemName) && $this->entityMatchesMessage($itemName, $message)) {
+            return true;
+        }
+    }
+
+    if (preg_match('/\b\d+(?:[.,]\d+)?\s*x?\s*[\p{L}][\p{L}\p{N}\s\-_]{2,}?\s+(?:po|za|=)\s*\d+(?:[.,]\d+)?\s*(?:eur|€)\b/iu', $message) === 1) {
         return true;
     }
 
@@ -1413,7 +1676,7 @@ private function buildContractPreviewFromPayload(array $payload, string $message
         $name = $product->name ?? $item['name'];
         $price = $this->resolveContractItemUnitPrice($item, $product, $message);
         $quantity = $item['quantity'];
-        $vatRate = $product->vatRate->percentage ?? null;
+        $vatRate = $product->vatRate->percentage ?? \App\Models\VatRate::whereKey($item['vat_rate_id'] ?? null)->value('percentage');
         $vatText = $vatRate !== null ? ", PDV {$vatRate}%" : '';
 
         return "- {$name}: {$quantity} x {$price} EUR{$vatText}";
@@ -1423,7 +1686,7 @@ private function buildContractPreviewFromPayload(array $payload, string $message
         $product = !empty($item['product_id']) ? \App\Models\Product::find($item['product_id']) : null;
         $price = $this->resolveContractItemUnitPrice($item, $product, $message);
         $quantity = (float) $item['quantity'];
-        $vatRate = (float) ($product->vatRate->percentage ?? 0);
+        $vatRate = (float) ($product->vatRate->percentage ?? \App\Models\VatRate::whereKey($item['vat_rate_id'] ?? null)->value('percentage') ?? 0);
         $base = round($quantity * $price, 2);
         $vat = round($base * ($vatRate / 100), 2);
         $totalWithoutVat += $base;
@@ -1711,9 +1974,20 @@ private function formatContractForJson($contract, bool $includeInvoices): array
     return $data;
 }
 
-private function callGemini(string $message, string $systemPrompt): string
+private function callGemini(string $message, string $systemPrompt, ?string $requestId = null, string $promptType = 'gemini_main'): string
 {
     $apiKey = config('services.gemini.key');
+
+    if (!$apiKey) {
+        $this->logPromptError($requestId, 'gemini', $promptType, [
+            'error' => 'missing_api_key',
+        ]);
+
+        return 'Gemma API ključ nije podešen. Dodaj GEMINI_API_KEY u .env.';
+    }
+
+    $isStructuredPrompt = str_contains($promptType, 'classifier') || str_contains($promptType, 'extract');
+    $maxOutputTokens = str_contains($promptType, 'create_contract_extract') ? 900 : ($isStructuredPrompt ? 300 : 1000);
 
     $payload = [
         'system_instruction' => [
@@ -1723,22 +1997,67 @@ private function callGemini(string $message, string $systemPrompt): string
             ['role' => 'user', 'parts' => [['text' => $message]]]
         ],
         'generationConfig' => [
-            'maxOutputTokens' => 500,
-            'temperature'     => 0.7,
+            'maxOutputTokens' => $maxOutputTokens,
+            'temperature'     => $isStructuredPrompt ? 0.1 : 0.7,
         ]
     ];
+
+    $this->logPromptRequest($requestId, 'gemini', $promptType, [
+        'system_prompt' => $systemPrompt,
+        'message' => $message,
+        'prompt_length' => strlen($systemPrompt . "\n" . $message),
+    ]);
 
     $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key={$apiKey}");
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 
     $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    if ($response === false || $curlErrno !== 0) {
+        $this->logPromptError($requestId, 'gemini', $promptType, [
+            'http_code' => $httpCode,
+            'curl_errno' => $curlErrno,
+            'curl_error' => $curlError,
+        ]);
+
+        return 'Greška pri komunikaciji sa Gemma servisom: ' . ($curlError ?: 'nepoznata greška.');
+    }
+
+    $this->logPromptResponse($requestId, 'gemini', $promptType, [
+        'http_code' => $httpCode,
+        'response' => $response,
+        'response_length' => strlen($response),
+    ]);
+
     $data = json_decode($response, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        $this->logPromptError($requestId, 'gemini', $promptType, [
+            'http_code' => $httpCode,
+            'json_error' => json_last_error_msg(),
+            'raw_response' => $response,
+        ]);
+
+        return 'Greška pri obradi Gemma odgovora: ' . json_last_error_msg();
+    }
+
+    if (isset($data['error']['message'])) {
+        $this->logPromptError($requestId, 'gemini', $promptType, [
+            'http_code' => $httpCode,
+            'api_error' => $data['error']['message'],
+            'raw_response' => $response,
+        ]);
+
+        return 'Greška od Gemma API-ja: ' . $data['error']['message'];
+    }
 
     // Izvuci samo ne-thought dijelove odgovora
     $parts = $data['candidates'][0]['content']['parts'] ?? [];
@@ -1749,7 +2068,7 @@ private function callGemini(string $message, string $systemPrompt): string
         }
     }
 
-    return trim($text) ?: 'Greška pri odgovoru od Gemini.';
+    return trim($text) ?: 'Greška pri odgovoru od Gemma.';
 }
 
 private function callAppleIntelligence(string $message, string $promptDataJson, string $requestId): string

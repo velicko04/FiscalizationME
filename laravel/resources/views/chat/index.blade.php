@@ -138,6 +138,25 @@
             margin-top: 4px;
             padding-left: 42px;
         }
+        .message-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 8px;
+            min-height: 36px;
+            padding: 0 14px;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .message-action:hover { background: #374151; }
+        .message-bubble .message-action {
+            margin-top: 10px;
+            white-space: normal;
+        }
         .chat-input-bar {
             display: flex;
             gap: 8px;
@@ -182,7 +201,7 @@
     <div class="provider-bar">
         <button class="provider-btn active" id="btn-ollama" onclick="setProvider('ollama')">Ollama</button>
         <button class="provider-btn" id="btn-apple" onclick="setProvider('apple')">Apple Intelligence</button>
-        <button class="provider-btn" id="btn-gemini" onclick="setProvider('gemini')">Gemini</button>
+        <button class="provider-btn" id="btn-gemini" onclick="setProvider('gemini')">Gemma</button>
         <span class="provider-label" id="provider-label">Ollama aktivan</span>
     </div>
 
@@ -197,6 +216,8 @@
             <button type="button" class="prompt-chip" data-prompt="Koliko ima aktivnih, neaktivnih i isteklih ugovora?">Statusi ugovora</button>
             <button type="button" class="prompt-chip" data-prompt="Prikaži mi sve firme">Lista firmi</button>
             <button type="button" class="prompt-chip" data-prompt="Prikaži nefiskalizovane fakture.">Nefiskalizovane fakture</button>
+            <button type="button" class="prompt-chip" data-prompt="Daj mi PDF zadnje fakture za ugovor">PDF fakture</button>
+            <button type="button" class="prompt-chip" data-prompt="Pošalji zadnju fakturu za ugovor na mejl">Pošalji fakturu mejlom</button>
         </div>
     </div>
 
@@ -231,7 +252,7 @@ function setProvider(p) {
     document.getElementById('provider-label').textContent = 
     p === 'ollama' ? 'Ollama aktivan' : 
     p === 'apple' ? 'Apple Intelligence aktivan' : 
-    'Gemini aktivan';
+    'Gemma aktivan';
 }
 
 function scrollToBottom() {
@@ -260,9 +281,30 @@ function addStats(wrapper, stats) {
     var parts = [];
     if (stats.tokens) parts.push(stats.tokens + ' tokena');
     parts.push(stats.time_s + 's');
-    parts.push(stats.provider === 'apple' ? ' Apple Intelligence' : ' Ollama');
+    parts.push(stats.provider === 'apple' ? ' Apple Intelligence' : (stats.provider === 'gemini' ? ' Gemma' : ' Ollama'));
     statsDiv.textContent = parts.join(' · ');
     wrapper.appendChild(statsDiv);
+}
+
+function addDownloadAction(wrapper, url, label) {
+    var link = document.createElement('a');
+    link.className = 'message-action';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = label || 'Preuzmi';
+    wrapper.appendChild(link);
+}
+
+function addDownloadActionToBubble(bubble, url, label) {
+    var link = document.createElement('a');
+    link.className = 'message-action';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = label || 'Preuzmi';
+    bubble.appendChild(document.createElement('br'));
+    bubble.appendChild(link);
 }
 
 function sendMessage() {
@@ -292,17 +334,23 @@ function sendMessage() {
             provider: currentProvider
         })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+        }
+        return res.json();
+    })
     .then(function(data) {
         bubble.textContent = data.response;
+        if (data.download_url) addDownloadActionToBubble(bubble, data.download_url, data.download_label);
         if (data.stats) addStats(wrapper, data.stats);
         chatHistory.push({ role: 'assistant', content: data.response });
         isStreaming = false;
         sendBtn.disabled = false;
         scrollToBottom();
     })
-    .catch(function() {
-        bubble.textContent = 'Greška pri komunikaciji.';
+    .catch(function(error) {
+        bubble.textContent = 'Greška pri komunikaciji: ' + error.message;
         isStreaming = false;
         sendBtn.disabled = false;
     });
