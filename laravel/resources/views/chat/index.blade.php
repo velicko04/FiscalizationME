@@ -213,8 +213,6 @@
             <button type="button" class="prompt-chip" data-prompt="Prikaži mi ugovor">Vidi ugovor</button>
             <button type="button" class="prompt-chip" data-prompt="Prikaži stavke ugovora">Vidi stavke ugovora</button>
             <button type="button" class="prompt-chip" data-prompt="Vidi fakture za ugovor">Vidi fakture za ugovor</button>
-            <button type="button" class="prompt-chip" data-prompt="Koliko ima aktivnih, neaktivnih i isteklih ugovora?">Statusi ugovora</button>
-            <button type="button" class="prompt-chip" data-prompt="Prikaži mi sve firme">Lista firmi</button>
             <button type="button" class="prompt-chip" data-prompt="Prikaži nefiskalizovane fakture.">Nefiskalizovane fakture</button>
             <button type="button" class="prompt-chip" data-prompt="Daj mi PDF zadnje fakture za ugovor">PDF fakture</button>
             <button type="button" class="prompt-chip" data-prompt="Pošalji zadnju fakturu za ugovor na mejl">Pošalji fakturu mejlom</button>

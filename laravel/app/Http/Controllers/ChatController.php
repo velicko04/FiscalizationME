@@ -102,7 +102,7 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
         'download_invoice_pdf' => $this->handleDownloadInvoicePdfRequest($message),
         'contract_status_summary' => $this->handleContractStatusSummaryRequest(),
         'company_list' => $this->handleCompanyListRequest(),
-        'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest(),
+        'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest($message),
         default => "Mogu pomoći oko ovih akcija: kreiranje ugovora, kreiranje fakture, pregled ugovora, pregled faktura/stavki, lista firmi, statusi ugovora i nefiskalizovane fakture.",
     };
 
@@ -134,7 +134,7 @@ Dozvoljeni intent-i:
 - download_invoice_pdf: korisnik želi PDF/preuzimanje/download fakture, uključujući zadnju fakturu za ugovor
 - contract_status_summary: korisnik pita koliko ima aktivnih/neaktivnih/isteklih ugovora ili status ugovora u zbiru
 - company_list: korisnik traži listu firmi/kompanija
-- unfiscalized_invoices: korisnik traži nefiskalizovane fakture ili fakture koje čekaju fiskalizaciju
+- unfiscalized_invoices: korisnik traži nefiskalizovane fakture, fakture koje čekaju fiskalizaciju, ili pita da li je neka faktura/zadnja faktura fiskalizovana
 - unknown: sve van navedenog opsega
 
 Vrati JSON oblika:
@@ -412,16 +412,39 @@ private function isUnfiscalizedInvoicesRequest(string $message): bool
     );
 }
 
-private function handleUnfiscalizedInvoicesRequest(): string
+private function handleUnfiscalizedInvoicesRequest(string $message): string
 {
+    $contract = $this->findContractForChat($message);
+
+    if ($contract && $this->isLastInvoiceQuestion($message)) {
+        $invoice = \App\Models\Invoice::with(['company', 'buyer', 'contract'])
+            ->where('contract_id', $contract->id)
+            ->orderByDesc('issued_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$invoice) {
+            return "Ugovor {$contract->contract_number} nema fakture.";
+        }
+
+        if ($invoice->fic) {
+            return "Da, zadnja faktura za ugovor {$contract->contract_number} je fiskalizovana.\nBroj fakture: {$invoice->invoice_number}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nFIC: {$invoice->fic}";
+        }
+
+        return "Ne, zadnja faktura za ugovor {$contract->contract_number} nije fiskalizovana.\nBroj fakture: {$invoice->invoice_number}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR";
+    }
+
     $invoices = \App\Models\Invoice::with(['company', 'buyer', 'contract'])
         ->whereNull('fic')
         ->where('invoice_type', '!=', 'CORRECTIVE')
+        ->when($contract, fn($query) => $query->where('contract_id', $contract->id))
         ->orderBy('issued_at', 'desc')
         ->get();
 
     if ($invoices->isEmpty()) {
-        return 'Nema nefiskalizovanih faktura.';
+        return $contract
+            ? "Ugovor {$contract->contract_number} nema nefiskalizovanih faktura."
+            : 'Nema nefiskalizovanih faktura.';
     }
 
     $lines = $invoices->map(function ($invoice) {
@@ -434,7 +457,9 @@ private function handleUnfiscalizedInvoicesRequest(): string
 
     $total = round($invoices->sum(fn($invoice) => (float) $invoice->total_price_to_pay), 2);
 
-    return "Nefiskalizovane fakture ({$invoices->count()}):\n{$lines}\n\nUkupno za fiskalizaciju: {$total} EUR";
+    $scope = $contract ? " za ugovor {$contract->contract_number}" : '';
+
+    return "Nefiskalizovane fakture{$scope} ({$invoices->count()}):\n{$lines}\n\nUkupno za fiskalizaciju: {$total} EUR";
 }
 
 private function isShowInvoiceItemsRequest(string $message): bool
