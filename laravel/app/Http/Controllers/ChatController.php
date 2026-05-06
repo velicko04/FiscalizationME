@@ -83,27 +83,27 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
     ]);
 
     if ($confidence < 0.45 || $intentName === 'unknown') {
-        $content = "Mogu pomoći oko ovih akcija: kreiranje ugovora, kreiranje fakture, pregled ugovora, pregled faktura/stavki, lista firmi, statusi ugovora i nefiskalizovane fakture. Napiši šta želiš u vezi toga.";
+        $content = $this->unsupportedChatScopeMessage();
 
         return $this->chatJsonResponse($content, $provider, $requestId, 'unknown_intent', $startTime);
     }
 
     $content = match ($intentName) {
-        'small_talk' => 'Tu sam. Mogu pomoći oko ugovora, faktura, firmi i fiskalizacije.',
+        'small_talk' => $this->unsupportedChatScopeMessage(),
         'create_contract' => $this->handleCreateContractRequest($request, $message, $provider, $requestId),
         'create_invoice' => $this->handleCreateInvoiceRequest($request, $message, $provider, $requestId),
         'show_contract' => $this->handleShowContractRequest($message),
         'show_contract_items' => $this->handleShowContractItemsRequest($message),
         'show_contract_invoices' => $this->handleShowContractInvoicesRequest($message),
         'show_last_invoice' => $this->handleShowContractInvoicesRequest($this->ensureLastInvoiceWording($message)),
-        'show_invoice' => $this->handleShowInvoiceRequest($message),
+        'show_invoice' => $this->extractContractNumber($message) !== null
+            ? $this->handleShowContractInvoicesRequest($message)
+            : $this->handleShowInvoiceRequest($message),
         'show_invoice_items' => $this->handleShowInvoiceItemsRequest($message),
-        'send_invoice_email' => $this->handleSendInvoiceEmailRequest($message, $requestId),
+        'send_invoice_email' => $this->handleSendInvoiceEmailRequest($request, $message),
         'download_invoice_pdf' => $this->handleDownloadInvoicePdfRequest($message),
-        'contract_status_summary' => $this->handleContractStatusSummaryRequest(),
-        'company_list' => $this->handleCompanyListRequest(),
         'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest($message),
-        default => "Mogu pomoći oko ovih akcija: kreiranje ugovora, kreiranje fakture, pregled ugovora, pregled faktura/stavki, lista firmi, statusi ugovora i nefiskalizovane fakture.",
+        default => $this->unsupportedChatScopeMessage(),
     };
 
     if (is_array($content)) {
@@ -115,30 +115,16 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
 
 private function classifyChatIntent(string $message, string $provider, string $requestId): array
 {
-    $systemPrompt = "Ti si intent router za FiscalizationME aplikaciju.
-Vrati samo validan JSON, bez markdowna i bez objašnjenja.
-Ne izvršavaš akcije i ne odgovaraš korisniku.
-Tvoj posao je samo da prepoznaš jednu od dozvoljenih namjera.
-
-Dozvoljeni intent-i:
-- small_talk: pozdrav ili provjera da li je asistent tu
-- create_contract: korisnik želi dodati/napraviti/kreirati ugovor
-- create_invoice: korisnik želi dodati/napraviti/kreirati/fakturisati fakturu za ugovor
-- show_contract: korisnik želi pregled konkretnog ugovora
-- show_contract_items: korisnik želi stavke konkretnog ugovora
-- show_contract_invoices: korisnik želi fakture konkretnog ugovora
-- show_last_invoice: korisnik želi zadnju/posljednju/najnoviju fakturu za ugovor
-- show_invoice: korisnik želi pregled konkretne fakture
-- show_invoice_items: korisnik želi stavke konkretne fakture
-- send_invoice_email: korisnik želi poslati fakturu/PDF fakture na email/mejl adresu
-- download_invoice_pdf: korisnik želi PDF/preuzimanje/download fakture, uključujući zadnju fakturu za ugovor
-- contract_status_summary: korisnik pita koliko ima aktivnih/neaktivnih/isteklih ugovora ili status ugovora u zbiru
-- company_list: korisnik traži listu firmi/kompanija
-- unfiscalized_invoices: korisnik traži nefiskalizovane fakture, fakture koje čekaju fiskalizaciju, ili pita da li je neka faktura/zadnja faktura fiskalizovana
-- unknown: sve van navedenog opsega
-
-Vrati JSON oblika:
-{\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"kratko\"}";
+    $systemPrompt = "Vrati samo JSON: {\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"...\"}.
+Ti si usko ograničen router za FiscalizationME. Ako poruka nije o podržanim akcijama, vrati unknown.
+Podržani intenti:
+create_contract, create_invoice, show_contract, show_contract_items,
+show_contract_invoices, show_last_invoice, show_invoice, show_invoice_items,
+send_invoice_email, download_invoice_pdf, unfiscalized_invoices, unknown.
+Pravila: slanje na mejl=>send_invoice_email; PDF/preuzimanje=>download_invoice_pdf;
+zadnja faktura za ugovor=>show_last_invoice; nefiskalizovane ili 'da li je fiskalizovana'=>unfiscalized_invoices;
+faktura/fakture za ugovor bez riječi napravi/kreiraj/fakturiši=>show_contract_invoices;
+napravi/dodaj ugovor=>create_contract; napravi/fakturiši ugovor=>create_invoice.";
 
     $content = match ($provider) {
         'apple' => $this->callAppleIntentClassifier($message, $systemPrompt, $requestId),
@@ -161,7 +147,6 @@ Vrati JSON oblika:
     }
 
     $allowedIntents = [
-        'small_talk',
         'create_contract',
         'create_invoice',
         'show_contract',
@@ -172,8 +157,6 @@ Vrati JSON oblika:
         'show_invoice_items',
         'send_invoice_email',
         'download_invoice_pdf',
-        'contract_status_summary',
-        'company_list',
         'unfiscalized_invoices',
         'unknown',
     ];
@@ -183,6 +166,11 @@ Vrati JSON oblika:
     }
 
     return $decoded;
+}
+
+private function unsupportedChatScopeMessage(): string
+{
+    return "Mogu pomoći samo oko ovih akcija:\n- prikaz ugovora i faktura\n- kreiranje ugovora i faktura\n- prikaz stavki ugovora\n- slanje fakture na mejl\n- preuzimanje PDF-a fakture\n- prikaz nefiskalizovanih faktura za ugovor\n\nNapiši zahtjev u vezi jedne od ovih akcija.";
 }
 
 private function callAppleIntentClassifier(string $message, string $systemPrompt, string $requestId): string
@@ -559,7 +547,7 @@ private function handleDownloadInvoicePdfRequest(string $message): array
     ];
 }
 
-private function handleSendInvoiceEmailRequest(string $message, string $requestId): string
+private function handleSendInvoiceEmailRequest(Request $request, string $message): string
 {
     $email = $this->extractEmailAddress($message);
     if (!$email) {
@@ -571,15 +559,39 @@ private function handleSendInvoiceEmailRequest(string $message, string $requestI
         return 'Ne mogu da pronađem fakturu za slanje. Možeš napisati npr. „pošalji zadnju fakturu za ugovor CTR-001 na mejl test@example.com” ili „pošalji fakturu za april za CTR-001 na mejl test@example.com”.';
     }
 
-    try {
-        $invoice->loadMissing([
-            'items.product.vatRate',
-            'company',
-            'buyer',
-            'user',
-            'contract',
-        ]);
+    $invoice->loadMissing(['company', 'buyer', 'contract']);
+    $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
+    $contractText = $invoice->contract ? $invoice->contract->contract_number : '-';
 
+    $request->session()->put('pending_chat_action', [
+        'type' => 'send_invoice_email',
+        'invoice_id' => $invoice->id,
+        'email' => $email,
+        'message' => $message,
+    ]);
+
+    return "Pregled slanja fakture prije slanja:\nFaktura: {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nPrimaoc: {$email}\nPDF prilog: {$filename}\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži.";
+}
+
+private function sendInvoiceEmail(int $invoiceId, string $email, string $requestId): string
+{
+    $invoice = \App\Models\Invoice::with([
+        'items.product.vatRate',
+        'company',
+        'buyer',
+        'user',
+        'contract',
+    ])->find($invoiceId);
+
+    if (!$invoice) {
+        return 'Ne mogu da pronađem fakturu za slanje.';
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return 'Email adresa za slanje nije validna.';
+    }
+
+    try {
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
         $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
         $subject = "Faktura {$invoice->invoice_number}";
@@ -702,7 +714,9 @@ private function extractInvoiceNumber(string $message): ?string
     }
 
     if (preg_match('/\b(?:faktura|fakture|račun|racun|invoice)\s+([A-Za-z0-9\/_-]+)\b/iu', $message, $matches) === 1) {
-        return trim($matches[1], " \t\n\r\0\x0B.,;:");
+        $candidate = trim($matches[1], " \t\n\r\0\x0B.,;:");
+
+        return in_array(mb_strtolower($candidate), ['za', 'od', 'iz', 'ugovor', 'contract'], true) ? null : $candidate;
     }
 
     return null;
@@ -771,8 +785,14 @@ private function handleShowContractInvoicesRequest(string $message): string
         return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži fakture za ctr 012” ili „da li je ugovor 12 fakturisan za april”.';
     }
 
-    $period = $this->extractInvoicePeriod($message);
+    $date = $this->extractInvoiceDate($message);
+    $period = $date ? null : $this->extractInvoicePeriod($message);
     $invoices = $contract->invoices->sortByDesc('issued_at');
+
+    if ($date) {
+        $invoices = $invoices->filter(fn($invoice) => $invoice->issued_at
+            && $invoice->issued_at->toDateString() === $date->toDateString());
+    }
 
     if ($period) {
         $invoices = $invoices->filter(fn($invoice) => $invoice->issued_at
@@ -781,16 +801,19 @@ private function handleShowContractInvoicesRequest(string $message): string
     }
 
     if ($invoices->isEmpty()) {
-        $periodText = $period ? " za period " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}" : '';
+        $periodText = $date
+            ? " za datum {$date->toDateString()}"
+            : ($period ? " za period " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}" : '');
 
         return "Ugovor {$contract->contract_number} nema fakture{$periodText}.";
     }
 
-    if ($this->isLastInvoiceQuestion($message)) {
-        $invoice = $invoices->first();
-        $status = $invoice->fic ? 'fiskalizovana' : 'nije fiskalizovana';
+    if ($date || ($period && $invoices->count() === 1)) {
+        return $this->formatInvoiceForContractResponse($contract, $invoices->first(), $date ? "za datum {$date->toDateString()}" : "za " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}");
+    }
 
-        return "Zadnja faktura za ugovor {$contract->contract_number}:\n- Broj fakture: {$invoice->invoice_number}\n- Datum: {$invoice->issued_at->format('Y-m-d')}\n- Ukupno bez PDV-a: {$invoice->total_price_without_vat} EUR\n- PDV: {$invoice->total_vat_amount} EUR\n- Ukupno za plaćanje: {$invoice->total_price_to_pay} EUR\n- Status: {$status}";
+    if ($this->isLastInvoiceQuestion($message)) {
+        return $this->formatInvoiceForContractResponse($contract, $invoices->first(), 'zadnja');
     }
 
     $lines = $invoices->map(function ($invoice) {
@@ -803,6 +826,13 @@ private function handleShowContractInvoicesRequest(string $message): string
     $periodText = $period ? " za " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}" : '';
 
     return "Fakture ugovora {$contract->contract_number}{$periodText}:\n{$lines}\n\nBroj faktura: {$invoices->count()}\nUkupno fakturisano: {$total} EUR";
+}
+
+private function formatInvoiceForContractResponse($contract, $invoice, string $label): string
+{
+    $status = $invoice->fic ? 'fiskalizovana' : 'nije fiskalizovana';
+
+    return "Faktura {$label} za ugovor {$contract->contract_number}:\n- Broj fakture: {$invoice->invoice_number}\n- Datum: {$invoice->issued_at->format('Y-m-d')}\n- Period: {$invoice->tax_period}\n- Ukupno bez PDV-a: {$invoice->total_price_without_vat} EUR\n- PDV: {$invoice->total_vat_amount} EUR\n- Ukupno za plaćanje: {$invoice->total_price_to_pay} EUR\n- Status: {$status}";
 }
 
 private function isLastInvoiceQuestion(string $message): bool
@@ -878,6 +908,19 @@ private function extractInvoicePeriod(string $message): ?array
         if (str_contains($normalizedMessage, $name)) {
             return ['month' => $month, 'year' => $year];
         }
+    }
+
+    return null;
+}
+
+private function extractInvoiceDate(string $message): ?\Carbon\Carbon
+{
+    if (preg_match('/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/', $message, $matches) === 1) {
+        return \Carbon\Carbon::createFromDate((int) $matches[1], (int) $matches[2], (int) $matches[3])->startOfDay();
+    }
+
+    if (preg_match('/\b(\d{1,2})[.\-\/](\d{1,2})[.\-\/](20\d{2})\b/', $message, $matches) === 1) {
+        return \Carbon\Carbon::createFromDate((int) $matches[3], (int) $matches[2], (int) $matches[1])->startOfDay();
     }
 
     return null;
@@ -1010,6 +1053,16 @@ private function handlePendingActionResponse(Request $request, string $message, 
         $items = $invoice->items->map(fn($item) => "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR")->join("\n");
 
         return "Kreirana je faktura {$invoice->invoice_number} za ugovor {$contract->contract_number}.\nDatum: {$invoice->issued_at->format('Y-m-d')}\nKupac: {$invoice->buyer->name}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nStavke:\n{$items}";
+    }
+
+    if (($pendingAction['type'] ?? null) === 'send_invoice_email') {
+        $request->session()->forget('pending_chat_action');
+
+        return $this->sendInvoiceEmail(
+            (int) $pendingAction['invoice_id'],
+            $pendingAction['email'],
+            $requestId
+        );
     }
 
     $request->session()->forget('pending_chat_action');
@@ -1315,26 +1368,22 @@ private function buildContractCreationContextJson(string $message): string
 {
     $companies = \App\Models\Company::query()
         ->orderBy('name')
-        ->get(['id', 'name', 'tax_id_number'])
+        ->get(['id', 'name'])
         ->filter(fn($company) => $this->entityMatchesMessage($company->name, $message))
-        ->whenEmpty(fn($collection) => \App\Models\Company::query()->orderBy('name')->take(30)->get(['id', 'name', 'tax_id_number']))
         ->map(fn($company) => [
             'id' => $company->id,
             'name' => $company->name,
-            'tax_id_number' => $company->tax_id_number,
         ])
         ->values()
         ->all();
 
     $buyers = \App\Models\Buyer::query()
         ->orderBy('name')
-        ->get(['id', 'name', 'tax_id_number'])
+        ->get(['id', 'name'])
         ->filter(fn($buyer) => $this->entityMatchesMessage($buyer->name, $message))
-        ->whenEmpty(fn($collection) => \App\Models\Buyer::query()->orderBy('name')->take(30)->get(['id', 'name', 'tax_id_number']))
         ->map(fn($buyer) => [
             'id' => $buyer->id,
             'name' => $buyer->name,
-            'tax_id_number' => $buyer->tax_id_number,
         ])
         ->values()
         ->all();
@@ -1343,13 +1392,10 @@ private function buildContractCreationContextJson(string $message): string
         ->orderBy('name')
         ->get()
         ->filter(fn($product) => $this->entityMatchesMessage($product->name, $message))
-        ->whenEmpty(fn($collection) => \App\Models\Product::with('vatRate')->orderBy('name')->take(30)->get())
         ->map(fn($product) => [
             'id' => $product->id,
             'name' => $product->name,
-            'code' => $product->code,
             'price' => $this->normalizeContractUnitPrice((float) $product->price),
-            'unit' => $product->unit,
             'vat_rate_id' => $product->vat_rate_id,
             'vat_percentage' => $product->vatRate->percentage ?? null,
         ])
@@ -1373,12 +1419,7 @@ private function buildContractCreationContextJson(string $message): string
         'buyers' => $buyers,
         'products' => $products,
         'vat_rates' => $vatRates,
-        'allowed_values' => [
-            'billing_frequency' => ['monthly', 'quarterly', 'yearly'],
-            'status' => ['active', 'paused', 'expired'],
-            'default_type_of_invoice' => ['NONCASH', 'CASH'],
-            'default_payment_method' => ['ACCOUNT', 'CARD', 'BANKNOTE', 'OTHER', 'VOUCHER', 'COMPENSATION'],
-        ],
+        'defaults' => ['billing_frequency' => 'monthly', 'status' => 'active', 'invoice_type' => 'NONCASH', 'payment_method' => 'ACCOUNT'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
@@ -1409,26 +1450,12 @@ private function entityMatchesMessage(?string $name, string $message): bool
 
 private function extractContractPayloadWithAi(string $message, string $contextJson, string $provider, string $requestId): array
 {
-    $systemPrompt = "Ti izvlačiš podatke za pripremu ugovora u FiscalizationME aplikaciji.
-Vrati samo validan JSON bez markdowna i bez objašnjenja.
-Ne kreiraš ugovor i ne odgovaraš korisniku.
-Koristi ID-jeve iz konteksta kada prepoznaš firmu, kupca ili proizvod.
-Ako broj ugovora nije naveden, contract_number je null.
-Ako issue_day nije naveden, koristi dan iz start_date, a ako ga nema koristi 1.
-Ako billing_frequency nije naveden, koristi monthly.
-Ako status nije naveden, koristi active.
-Ako default_type_of_invoice nije naveden, koristi NONCASH.
-Ako default_payment_method nije naveden, koristi ACCOUNT.
-Ne izmišljaj stavke ugovora. Izvuci samo stavke koje su eksplicitno navedene u korisničkoj poruci.
-Ako korisnička poruka ne pominje nijedan proizvod/uslugu/stavku, vrati items kao prazan niz.
-Ako količina eksplicitno navedene stavke nije navedena, koristi 1.
-Ako cijena eksplicitno navedene postojeće stavke nije navedena, koristi cijenu pronađenog proizvoda.
-Ako korisnik navede novu stavku koja ne postoji u proizvodima, product_id je null, name je korisnikov naziv, price mora biti cijena iz poruke, a vat_rate_id koristi najbližu stopu iz konteksta ili 1.
-
-KONTEKST:
-{$contextJson}
-
-Vrati JSON oblika:
+    $systemPrompt = "Vrati samo JSON za nacrt ugovora. Koristi ID iz konteksta kad se naziv poklapa.
+Ne izmišljaj stavke: izvuci samo stavke pomenute u poruci. Ako nova stavka nije u products, product_id=null i cijena mora biti iz poruke.
+Default: billing_frequency=monthly, status=active, default_type_of_invoice=NONCASH, default_payment_method=ACCOUNT, issue_day=dan start_date ili 1.
+Ako firma/kupac/proizvod nije u kontekstu, odgovarajući id je null.
+KONTEKST: {$contextJson}
+JSON schema:
 {
   \"contract_number\": string|null,
   \"company_id\": number|null,
@@ -2033,18 +2060,47 @@ private function callGemini(string $message, string $systemPrompt, ?string $requ
         'prompt_length' => strlen($systemPrompt . "\n" . $message),
     ]);
 
-    $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key={$apiKey}");
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    $response = false;
+    $curlError = '';
+    $curlErrno = 0;
+    $httpCode = 0;
+    $maxAttempts = $isStructuredPrompt ? 3 : 1;
 
-    $response = curl_exec($ch);
-    $curlError = curl_error($ch);
-    $curlErrno = curl_errno($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key={$apiKey}");
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 120);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $curlErrno = curl_errno($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $shouldRetry = $response === false
+            || $curlErrno !== 0
+            || in_array($httpCode, [429, 500, 502, 503, 504], true);
+
+        if (!$shouldRetry || $attempt === $maxAttempts) {
+            break;
+        }
+
+        \Log::warning('Gemma request retry', [
+            'request_id' => $requestId,
+            'provider' => 'gemini',
+            'prompt_type' => $promptType,
+            'attempt' => $attempt,
+            'http_code' => $httpCode,
+            'curl_errno' => $curlErrno,
+            'curl_error' => $curlError,
+            'response' => is_string($response) ? $response : null,
+        ]);
+
+        usleep(250000 * $attempt);
+    }
 
     if ($response === false || $curlErrno !== 0) {
         $this->logPromptError($requestId, 'gemini', $promptType, [
