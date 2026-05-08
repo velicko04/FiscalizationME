@@ -33,10 +33,11 @@ class ChatController extends Controller
             'php_elapsed_s' => $elapsed,
         ]);
 
-        return response()->json([
-            'response' => $content,
+        $payload = is_array($content) ? $content : ['response' => $content];
+
+        return response()->json(array_merge($payload, [
             'stats'    => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'pending_action_response']
-        ]);
+        ]));
     }
 
     return $this->handleAiRoutedMessage($request, $message, $history, $provider, $requestId);
@@ -223,7 +224,7 @@ private function handleMultipleAiActions(Request $request, string $message, arra
             $text = $content['response'] ?? '';
             $this->rememberToolResult($intentName, $text);
 
-            foreach (['download_url', 'download_label'] as $key) {
+            foreach (['download_url', 'download_label', 'quick_actions'] as $key) {
                 if (isset($content[$key])) {
                     $extra[$key] = $content[$key];
                 }
@@ -829,7 +830,7 @@ private function handleDownloadInvoicePdfRequest(string $message): array
     ];
 }
 
-private function handleSendInvoiceEmailRequest(Request $request, string $message): string
+private function handleSendInvoiceEmailRequest(Request $request, string $message): array|string
 {
     $email = $this->extractEmailAddress($message);
     if (!$email) {
@@ -853,7 +854,10 @@ private function handleSendInvoiceEmailRequest(Request $request, string $message
         'message' => $message,
     ]);
 
-    return "Pregled slanja fakture prije slanja:\nFaktura: {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nPrimaoc: {$email}\nPDF prilog: {$filename}\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži.";
+    return [
+        'response' => "Pregled slanja fakture prije slanja:\nFaktura: {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nPrimaoc: {$email}\nPDF prilog: {$filename}",
+        'quick_actions' => $this->confirmationQuickActions(),
+    ];
 }
 
 private function sendInvoiceEmail(int $invoiceId, string $email, string $requestId): string
@@ -1373,7 +1377,23 @@ private function isPendingActionResponse(string $message): bool
     );
 }
 
-private function handlePendingActionResponse(Request $request, string $message, string $requestId): string
+private function confirmationQuickActions(): array
+{
+    return [
+        [
+            'label' => 'Potvrdi',
+            'message' => 'potvrdi',
+            'style' => 'primary',
+        ],
+        [
+            'label' => 'Otkaži',
+            'message' => 'otkaži',
+            'style' => 'secondary',
+        ],
+    ];
+}
+
+private function handlePendingActionResponse(Request $request, string $message, string $requestId): array|string
 {
     $normalizedMessage = trim(mb_strtolower($message));
     $pendingAction = $request->session()->get('pending_chat_action');
@@ -1423,7 +1443,18 @@ private function handlePendingActionResponse(Request $request, string $message, 
         $this->rememberChatContext($contract, $invoice);
         $items = $invoice->items->map(fn($item) => "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR")->join("\n");
 
-        return "Kreirana je faktura {$invoice->invoice_number} za ugovor {$contract->contract_number}.\nDatum: {$invoice->issued_at->format('Y-m-d')}\nKupac: {$invoice->buyer->name}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nStavke:\n{$items}";
+        return [
+            'response' => "Kreirana je faktura {$invoice->invoice_number} za ugovor {$contract->contract_number}.\nDatum: {$invoice->issued_at->format('Y-m-d')}\nKupac: {$invoice->buyer->name}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nStavke:\n{$items}",
+            'download_url' => route('invoice.pdf', ['id' => $invoice->id]),
+            'download_label' => 'Preuzmi PDF',
+            'quick_actions' => [
+                [
+                    'label' => 'Pošalji na mejl',
+                    'prefill' => 'Pošalji ovu fakturu na mejl: ',
+                    'style' => 'secondary',
+                ],
+            ],
+        ];
     }
 
     if (($pendingAction['type'] ?? null) === 'send_invoice_email') {
@@ -1441,7 +1472,7 @@ private function handlePendingActionResponse(Request $request, string $message, 
     return 'Nacrt akcije nije prepoznat. Pošalji zahtjev ponovo.';
 }
 
-private function handleCreateInvoiceRequest(Request $request, string $message, string $provider, string $requestId): string
+private function handleCreateInvoiceRequest(Request $request, string $message, string $provider, string $requestId): array|string
 {
     $contextJson = $this->buildInvoiceCreationContextJson($message);
     $extracted = $this->extractInvoicePayloadWithAi($message, $contextJson, $provider, $requestId);
@@ -1494,7 +1525,10 @@ private function handleCreateInvoiceRequest(Request $request, string $message, s
         'message' => $message,
     ]);
 
-    return $preview . "\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži, pa pošalji izmijenjen zahtjev.";
+    return [
+        'response' => $preview,
+        'quick_actions' => $this->confirmationQuickActions(),
+    ];
 }
 
 private function buildInvoiceCreationContextJson(string $message): string
@@ -1708,7 +1742,7 @@ private function createInvoiceFromContract($contract, \Carbon\Carbon $issueDate,
     return $invoice;
 }
 
-private function handleCreateContractRequest(Request $request, string $message, string $provider, string $requestId): string
+private function handleCreateContractRequest(Request $request, string $message, string $provider, string $requestId): array|string
 {
     $contextJson = $this->buildContractCreationContextJson($message);
     $extracted = $this->extractContractPayloadWithAi($message, $contextJson, $provider, $requestId);
@@ -1732,7 +1766,10 @@ private function handleCreateContractRequest(Request $request, string $message, 
         'message' => $message,
     ]);
 
-    return $this->buildContractPreviewFromPayload($extracted, $message) . "\n\nAko je sve u redu, napiši: potvrdi\nAko nije, napiši: otkaži, pa pošalji izmijenjen zahtjev.";
+    return [
+        'response' => $this->buildContractPreviewFromPayload($extracted, $message),
+        'quick_actions' => $this->confirmationQuickActions(),
+    ];
 }
 
 private function buildContractCreationContextJson(string $message): string

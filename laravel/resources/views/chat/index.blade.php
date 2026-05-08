@@ -138,11 +138,16 @@
             margin-top: 4px;
             padding-left: 42px;
         }
+        .message-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
         .message-action {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-top: 8px;
             min-height: 36px;
             padding: 0 14px;
             border-radius: 8px;
@@ -151,10 +156,30 @@
             text-decoration: none;
             font-size: 13px;
             font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-family: inherit;
         }
         .message-action:hover { background: #374151; }
+        .message-action:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .message-action.primary {
+            background: #16a34a;
+        }
+        .message-action.primary:hover {
+            background: #15803d;
+        }
+        .message-action.secondary {
+            background: white;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+        .message-action.secondary:hover {
+            background: #f9fafb;
+        }
         .message-bubble .message-action {
-            margin-top: 10px;
             white-space: normal;
         }
         .chat-input-bar {
@@ -284,25 +309,58 @@ function addStats(wrapper, stats) {
     wrapper.appendChild(statsDiv);
 }
 
-function addDownloadAction(wrapper, url, label) {
-    var link = document.createElement('a');
-    link.className = 'message-action';
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = label || 'Preuzmi';
-    wrapper.appendChild(link);
+function addDownloadActionToBubble(bubble, url, label) {
+    addQuickActionsToBubble(bubble, [{
+        label: label || 'Preuzmi',
+        url: url,
+        style: 'primary'
+    }]);
 }
 
-function addDownloadActionToBubble(bubble, url, label) {
-    var link = document.createElement('a');
-    link.className = 'message-action';
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = label || 'Preuzmi';
-    bubble.appendChild(document.createElement('br'));
-    bubble.appendChild(link);
+function addQuickActionsToBubble(bubble, actions) {
+    if (!Array.isArray(actions) || actions.length === 0) return;
+
+    var actionsWrap = document.createElement('div');
+    actionsWrap.className = 'message-actions';
+
+    actions.forEach(function(action) {
+        var label = action.label || 'Akcija';
+        var style = action.style ? ' ' + action.style : '';
+
+        if (action.url) {
+            var link = document.createElement('a');
+            link.className = 'message-action' + style;
+            link.href = action.url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = label;
+            actionsWrap.appendChild(link);
+            return;
+        }
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'message-action' + style;
+        button.textContent = label;
+        button.addEventListener('click', function() {
+            if (action.prefill) {
+                input.value = action.prefill;
+                input.focus();
+                return;
+            }
+
+            if (action.message) {
+                actionsWrap.querySelectorAll('button').forEach(function(item) {
+                    item.disabled = true;
+                });
+                input.value = action.message;
+                sendMessage();
+            }
+        });
+        actionsWrap.appendChild(button);
+    });
+
+    bubble.appendChild(actionsWrap);
 }
 
 function sendMessage() {
@@ -339,10 +397,11 @@ function sendMessage() {
         return res.json();
     })
     .then(function(data) {
-        bubble.textContent = data.response;
+        bubble.textContent = data.response || '';
         if (data.download_url) addDownloadActionToBubble(bubble, data.download_url, data.download_label);
+        if (data.quick_actions) addQuickActionsToBubble(bubble, data.quick_actions);
         if (data.stats) addStats(wrapper, data.stats);
-        chatHistory.push({ role: 'assistant', content: data.response });
+        chatHistory.push({ role: 'assistant', content: data.response || '' });
         isStreaming = false;
         sendBtn.disabled = false;
         scrollToBottom();
