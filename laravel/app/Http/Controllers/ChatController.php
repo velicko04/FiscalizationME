@@ -70,11 +70,11 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
         return $this->chatJsonResponse($intent['error'], $provider, $requestId, 'intent_error', $startTime);
     }
 
-    $intentName = $intent['intent'] ?? 'unknown';
+    $actions = $this->normalizeAiActions($intent);
+    $intentName = count($actions) > 1 ? 'multi_action' : ($actions[0]['intent'] ?? ($intent['intent'] ?? 'unknown'));
     $confidence = (float) ($intent['confidence'] ?? 0);
     $entities = is_array($intent['entities'] ?? null) ? $intent['entities'] : [];
     session(['current_ai_entities' => $entities]);
-    $message = $this->applyExtractedEntitiesToMessage($message, $entities, $intentName);
 
     \Log::info('AI intent selected', [
         'request_id' => $requestId,
@@ -82,6 +82,7 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
         'message' => $message,
         'intent' => $intentName,
         'confidence' => $confidence,
+        'actions' => $actions,
         'raw_intent' => $intent,
     ]);
 
@@ -91,23 +92,12 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
         return $this->chatJsonResponse($content, $provider, $requestId, 'unknown_intent', $startTime);
     }
 
-    $content = match ($intentName) {
-        'small_talk' => $this->unsupportedChatScopeMessage(),
-        'create_contract' => $this->handleCreateContractRequest($request, $message, $provider, $requestId),
-        'create_invoice' => $this->handleCreateInvoiceRequest($request, $message, $provider, $requestId),
-        'show_contract' => $this->handleShowContractRequest($message),
-        'show_contract_items' => $this->handleShowContractItemsRequest($message),
-        'show_contract_invoices' => $this->handleShowContractInvoicesRequest($message),
-        'show_last_invoice' => $this->handleShowContractInvoicesRequest($this->ensureLastInvoiceWording($message)),
-        'show_invoice' => $this->extractContractNumber($message) !== null
-            ? $this->handleShowContractInvoicesRequest($message)
-            : $this->handleShowInvoiceRequest($message),
-        'show_invoice_items' => $this->handleShowInvoiceItemsRequest($message),
-        'send_invoice_email' => $this->handleSendInvoiceEmailRequest($request, $message),
-        'download_invoice_pdf' => $this->handleDownloadInvoicePdfRequest($message),
-        'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest($message),
-        default => $this->unsupportedChatScopeMessage(),
-    };
+    if (count($actions) > 1) {
+        $content = $this->handleMultipleAiActions($request, $message, $actions, $provider, $requestId);
+    } else {
+        $action = $actions[0] ?? ['intent' => $intentName, 'entities' => $entities];
+        $content = $this->handleSingleAiAction($request, $message, $action, $provider, $requestId);
+    }
 
     if (is_array($content)) {
         $this->rememberToolResult($intentName, $content['response'] ?? '');
@@ -136,6 +126,8 @@ show_contract_invoices, show_last_invoice, show_invoice, show_invoice_items,
 send_invoice_email, download_invoice_pdf, unfiscalized_invoices, unknown.
 Vrati JSON oblika:
 {\"intent\":\"...\",\"confidence\":0.0,\"entities\":{\"contract_number\":null,\"invoice_number\":null,\"company_name\":null,\"customer_name\":null,\"email\":null,\"date\":null,\"period\":null},\"reason\":\"...\"}
+Ako korisnik traži više stvari u jednoj poruci, dodaj i \"actions\" niz redom kojim treba izvršiti:
+{\"intent\":\"multi_action\",\"confidence\":0.0,\"actions\":[{\"intent\":\"show_last_invoice\",\"entities\":{}},{\"intent\":\"download_invoice_pdf\",\"entities\":{}},{\"intent\":\"send_invoice_email\",\"entities\":{\"email\":\"...\"}}],\"reason\":\"...\"}
 Pravila: slanje na mejl=>send_invoice_email; PDF/preuzimanje=>download_invoice_pdf;
 zadnja faktura za ugovor=>show_last_invoice; nefiskalizovane ili 'da li je fiskalizovana'=>unfiscalized_invoices;
 faktura/fakture za ugovor bez riječi napravi/kreiraj/fakturiši=>show_contract_invoices;
@@ -174,6 +166,7 @@ napravi/dodaj ugovor=>create_contract; napravi/fakturiši ugovor=>create_invoice
         'send_invoice_email',
         'download_invoice_pdf',
         'unfiscalized_invoices',
+        'multi_action',
         'unknown',
     ];
 
@@ -181,7 +174,104 @@ napravi/dodaj ugovor=>create_contract; napravi/fakturiši ugovor=>create_invoice
         return ['intent' => 'unknown', 'confidence' => 0, 'reason' => 'Intent nije dozvoljen.'];
     }
 
+    foreach (($decoded['actions'] ?? []) as $action) {
+        if (!in_array($action['intent'] ?? null, array_diff($allowedIntents, ['multi_action']), true)) {
+            return ['intent' => 'unknown', 'confidence' => 0, 'reason' => 'Jedna od akcija nije dozvoljena.'];
+        }
+    }
+
     return $decoded;
+}
+
+private function normalizeAiActions(array $intent): array
+{
+    $actions = [];
+
+    if (isset($intent['actions']) && is_array($intent['actions'])) {
+        foreach ($intent['actions'] as $action) {
+            if (!is_array($action) || empty($action['intent'])) {
+                continue;
+            }
+
+            $actions[] = [
+                'intent' => $action['intent'],
+                'entities' => is_array($action['entities'] ?? null) ? $action['entities'] : ($intent['entities'] ?? []),
+            ];
+        }
+    }
+
+    if ($actions === []) {
+        $actions[] = [
+            'intent' => $intent['intent'] ?? 'unknown',
+            'entities' => is_array($intent['entities'] ?? null) ? $intent['entities'] : [],
+        ];
+    }
+
+    return array_values(array_filter($actions, fn($action) => ($action['intent'] ?? 'unknown') !== 'multi_action'));
+}
+
+private function handleMultipleAiActions(Request $request, string $message, array $actions, string $provider, string $requestId): array
+{
+    $responses = [];
+    $extra = [];
+
+    foreach ($actions as $index => $action) {
+        $content = $this->handleSingleAiAction($request, $message, $action, $provider, $requestId);
+        $intentName = $action['intent'] ?? 'unknown';
+
+        if (is_array($content)) {
+            $text = $content['response'] ?? '';
+            $this->rememberToolResult($intentName, $text);
+
+            foreach (['download_url', 'download_label'] as $key) {
+                if (isset($content[$key])) {
+                    $extra[$key] = $content[$key];
+                }
+            }
+        } else {
+            $text = $content;
+            $this->rememberToolResult($intentName, $text);
+        }
+
+        $responses[] = ($index + 1) . ". " . trim($text);
+
+        if (session()->has('pending_chat_action')) {
+            if ($index < count($actions) - 1) {
+                $responses[] = "Zaustavio sam se na koraku koji traži potvrdu. Kada napišeš `potvrdi`, izvršiću tu akciju; zatim možeš tražiti naredni korak.";
+            }
+
+            break;
+        }
+    }
+
+    return array_merge([
+        'response' => implode("\n\n", $responses),
+    ], $extra);
+}
+
+private function handleSingleAiAction(Request $request, string $message, array $action, string $provider, string $requestId)
+{
+    $intentName = $action['intent'] ?? 'unknown';
+    $entities = is_array($action['entities'] ?? null) ? $action['entities'] : [];
+    session(['current_ai_entities' => $entities]);
+    $resolvedMessage = $this->applyExtractedEntitiesToMessage($message, $entities, $intentName);
+
+    return match ($intentName) {
+        'create_contract' => $this->handleCreateContractRequest($request, $resolvedMessage, $provider, $requestId),
+        'create_invoice' => $this->handleCreateInvoiceRequest($request, $resolvedMessage, $provider, $requestId),
+        'show_contract' => $this->handleShowContractRequest($resolvedMessage),
+        'show_contract_items' => $this->handleShowContractItemsRequest($resolvedMessage),
+        'show_contract_invoices' => $this->handleShowContractInvoicesRequest($resolvedMessage),
+        'show_last_invoice' => $this->handleShowContractInvoicesRequest($this->ensureLastInvoiceWording($resolvedMessage)),
+        'show_invoice' => $this->extractContractNumber($resolvedMessage) !== null
+            ? $this->handleShowContractInvoicesRequest($resolvedMessage)
+            : $this->handleShowInvoiceRequest($resolvedMessage),
+        'show_invoice_items' => $this->handleShowInvoiceItemsRequest($resolvedMessage),
+        'send_invoice_email' => $this->handleSendInvoiceEmailRequest($request, $resolvedMessage),
+        'download_invoice_pdf' => $this->handleDownloadInvoicePdfRequest($resolvedMessage),
+        'unfiscalized_invoices' => $this->handleUnfiscalizedInvoicesRequest($resolvedMessage),
+        default => $this->unsupportedChatScopeMessage(),
+    };
 }
 
 private function applyExtractedEntitiesToMessage(string $message, array $entities, string $intentName): string
@@ -2311,33 +2401,25 @@ private function formatContractForJson($contract, bool $includeInvoices): array
 
 private function callGemini(string $message, string $systemPrompt, ?string $requestId = null, string $promptType = 'gemini_main'): string
 {
-    $apiKey = config('services.gemini.key');
-
-    if (!$apiKey) {
-        $this->logPromptError($requestId, 'gemini', $promptType, [
-            'error' => 'missing_api_key',
-        ]);
-
-        return 'Gemma API ključ nije podešen. Dodaj GEMINI_API_KEY u .env.';
-    }
-
     $isStructuredPrompt = str_contains($promptType, 'classifier') || str_contains($promptType, 'extract');
-    $maxOutputTokens = str_contains($promptType, 'create_contract_extract') ? 900 : ($isStructuredPrompt ? 300 : 1000);
+    $maxAttempts = $isStructuredPrompt ? 3 : 1;
 
     $payload = [
-        'system_instruction' => [
-            'parts' => [['text' => $systemPrompt]]
+        'model' => 'gemma4:e4b', 
+        'messages' => [
+            [
+                'role' => 'system',
+                'content' => $systemPrompt
+            ],
+            [
+                'role' => 'user',
+                'content' => $message
+            ]
         ],
-        'contents' => [
-            ['role' => 'user', 'parts' => [['text' => $message]]]
-        ],
-        'generationConfig' => [
-            'maxOutputTokens' => $maxOutputTokens,
-            'temperature'     => $isStructuredPrompt ? 0.1 : 0.7,
-        ]
+        'stream' => false
     ];
 
-    $this->logPromptRequest($requestId, 'gemini', $promptType, [
+    $this->logPromptRequest($requestId, 'ollama', $promptType, [
         'system_prompt' => $systemPrompt,
         'message' => $message,
         'prompt_length' => strlen($systemPrompt . "\n" . $message),
@@ -2345,12 +2427,12 @@ private function callGemini(string $message, string $systemPrompt, ?string $requ
 
     $response = false;
     $curlError = '';
-    $curlErrno = 0;
     $httpCode = 0;
-    $maxAttempts = $isStructuredPrompt ? 3 : 1;
 
     for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key={$apiKey}");
+
+        $ch = curl_init("http://localhost:11434/api/chat");
+
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -2359,44 +2441,35 @@ private function callGemini(string $message, string $systemPrompt, ?string $requ
 
         $response = curl_exec($ch);
         $curlError = curl_error($ch);
-        $curlErrno = curl_errno($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
         curl_close($ch);
 
-        $shouldRetry = $response === false
-            || $curlErrno !== 0
-            || in_array($httpCode, [429, 500, 502, 503, 504], true);
+        $shouldRetry = $response === false || in_array($httpCode, [429, 500, 502, 503, 504], true);
 
         if (!$shouldRetry || $attempt === $maxAttempts) {
             break;
         }
 
-        \Log::warning('Gemma request retry', [
+        \Log::warning('Ollama retry', [
             'request_id' => $requestId,
-            'provider' => 'gemini',
-            'prompt_type' => $promptType,
             'attempt' => $attempt,
             'http_code' => $httpCode,
-            'curl_errno' => $curlErrno,
-            'curl_error' => $curlError,
-            'response' => is_string($response) ? $response : null,
-        ]);
-
-        usleep(250000 * $attempt);
-    }
-
-    if ($response === false || $curlErrno !== 0) {
-        $this->logPromptError($requestId, 'gemini', $promptType, [
-            'http_code' => $httpCode,
-            'curl_errno' => $curlErrno,
             'curl_error' => $curlError,
         ]);
 
-        return 'Greška pri komunikaciji sa Gemma servisom: ' . ($curlError ?: 'nepoznata greška.');
+        usleep(200000 * $attempt);
     }
 
-    $this->logPromptResponse($requestId, 'gemini', $promptType, [
-        'http_code' => $httpCode,
+    if ($response === false) {
+        $this->logPromptError($requestId, 'ollama', $promptType, [
+            'curl_error' => $curlError,
+        ]);
+
+        return 'Greška pri komunikaciji sa lokalnim Gemma (Ollama) modelom: ' . $curlError;
+    }
+
+    $this->logPromptResponse($requestId, 'ollama', $promptType, [
         'response' => $response,
         'response_length' => strlen($response),
     ]);
@@ -2404,35 +2477,18 @@ private function callGemini(string $message, string $systemPrompt, ?string $requ
     $data = json_decode($response, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
-        $this->logPromptError($requestId, 'gemini', $promptType, [
-            'http_code' => $httpCode,
+        $this->logPromptError($requestId, 'ollama', $promptType, [
             'json_error' => json_last_error_msg(),
             'raw_response' => $response,
         ]);
 
-        return 'Greška pri obradi Gemma odgovora: ' . json_last_error_msg();
+        return 'Greška pri obradi Ollama odgovora: ' . json_last_error_msg();
     }
 
-    if (isset($data['error']['message'])) {
-        $this->logPromptError($requestId, 'gemini', $promptType, [
-            'http_code' => $httpCode,
-            'api_error' => $data['error']['message'],
-            'raw_response' => $response,
-        ]);
+    // Ollama response format:
+    $text = $data['message']['content'] ?? '';
 
-        return 'Greška od Gemma API-ja: ' . $data['error']['message'];
-    }
-
-    // Izvuci samo ne-thought dijelove odgovora
-    $parts = $data['candidates'][0]['content']['parts'] ?? [];
-    $text = '';
-    foreach ($parts as $part) {
-        if (empty($part['thought'])) {
-            $text .= $part['text'] ?? '';
-        }
-    }
-
-    return trim($text) ?: 'Greška pri odgovoru od Gemma.';
+    return trim($text) ?: 'Greška: prazan odgovor od Gemma (Ollama).';
 }
 
 private function callAppleIntelligence(string $message, string $promptDataJson, string $requestId): string
