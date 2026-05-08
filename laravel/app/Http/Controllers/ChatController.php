@@ -64,7 +64,7 @@ PODACI_JSON:
 private function handleAiRoutedMessage(Request $request, string $message, array $history, string $provider, string $requestId)
 {
     $startTime = microtime(true);
-    $intent = $this->classifyChatIntent($message, $provider, $requestId);
+    $intent = $this->classifyChatIntent($message, $history, $provider, $requestId);
 
     if (isset($intent['error'])) {
         return $this->chatJsonResponse($intent['error'], $provider, $requestId, 'intent_error', $startTime);
@@ -72,6 +72,9 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
 
     $intentName = $intent['intent'] ?? 'unknown';
     $confidence = (float) ($intent['confidence'] ?? 0);
+    $entities = is_array($intent['entities'] ?? null) ? $intent['entities'] : [];
+    session(['current_ai_entities' => $entities]);
+    $message = $this->applyExtractedEntitiesToMessage($message, $entities, $intentName);
 
     \Log::info('AI intent selected', [
         'request_id' => $requestId,
@@ -107,29 +110,42 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
     };
 
     if (is_array($content)) {
+        $this->rememberToolResult($intentName, $content['response'] ?? '');
         return $this->chatJsonResponse($content['response'], $provider, $requestId, $intentName, $startTime, $content);
     }
 
+    $this->rememberToolResult($intentName, $content);
     return $this->chatJsonResponse($content, $provider, $requestId, $intentName, $startTime);
 }
 
-private function classifyChatIntent(string $message, string $provider, string $requestId): array
+private function classifyChatIntent(string $message, array $history, string $provider, string $requestId): array
 {
-    $systemPrompt = "Vrati samo JSON: {\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"...\"}.
-Ti si usko ograničen router za FiscalizationME. Ako poruka nije o podržanim akcijama, vrati unknown.
+    $conversationPayload = json_encode([
+        'current_message' => $message,
+        'recent_history' => collect($history)->take(-20)->values()->all(),
+        'conversation_context' => session('chat_context', []),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    $systemPrompt = "Vrati samo validan JSON bez markdowna.
+Ti si conversational AI router za FiscalizationME. Koristi recent_history i conversation_context. Nikad ne ignoriši prethodni kontekst.
+Ako korisnik kaže 'taj ugovor', 'tog ugovora', 'njegove fakture', 'ta faktura', 'tu fakturu', 'ove stavke', koristi aktivni entitet iz conversation_context.
+Ako poruka nije o podržanim akcijama, vrati unknown.
 Podržani intenti:
 create_contract, create_invoice, show_contract, show_contract_items,
 show_contract_invoices, show_last_invoice, show_invoice, show_invoice_items,
 send_invoice_email, download_invoice_pdf, unfiscalized_invoices, unknown.
+Vrati JSON oblika:
+{\"intent\":\"...\",\"confidence\":0.0,\"entities\":{\"contract_number\":null,\"invoice_number\":null,\"company_name\":null,\"customer_name\":null,\"email\":null,\"date\":null,\"period\":null},\"reason\":\"...\"}
 Pravila: slanje na mejl=>send_invoice_email; PDF/preuzimanje=>download_invoice_pdf;
 zadnja faktura za ugovor=>show_last_invoice; nefiskalizovane ili 'da li je fiskalizovana'=>unfiscalized_invoices;
 faktura/fakture za ugovor bez riječi napravi/kreiraj/fakturiši=>show_contract_invoices;
+zamjenice kao ta/tu/te fakture ili taj/tog ugovora odnose se na prethodni chat kontekst;
 napravi/dodaj ugovor=>create_contract; napravi/fakturiši ugovor=>create_invoice.";
 
     $content = match ($provider) {
-        'apple' => $this->callAppleIntentClassifier($message, $systemPrompt, $requestId),
-        'gemini' => $this->callGemini($message, $systemPrompt, $requestId, 'gemini_intent_classifier'),
-        default => $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_intent_classifier'),
+        'apple' => $this->callAppleIntentClassifier($conversationPayload, $systemPrompt, $requestId),
+        'gemini' => $this->callGemini($conversationPayload, $systemPrompt, $requestId, 'gemini_intent_classifier'),
+        default => $this->callOllama($conversationPayload, [], $systemPrompt, $requestId, 'ollama_intent_classifier'),
     };
 
     if (
@@ -166,6 +182,60 @@ napravi/dodaj ugovor=>create_contract; napravi/fakturiši ugovor=>create_invoice
     }
 
     return $decoded;
+}
+
+private function applyExtractedEntitiesToMessage(string $message, array $entities, string $intentName): string
+{
+    $parts = [$message];
+
+    $contractNumber = $this->normalizeExtractedContractNumber($entities['contract_number'] ?? null);
+    if ($contractNumber && $this->extractContractNumber($message) === null) {
+        $parts[] = "ugovor {$contractNumber}";
+    }
+
+    $invoiceNumber = is_string($entities['invoice_number'] ?? null) ? trim($entities['invoice_number']) : null;
+    if ($invoiceNumber && $this->extractInvoiceNumber($message) === null) {
+        $parts[] = "faktura {$invoiceNumber}";
+    }
+
+    $email = is_string($entities['email'] ?? null) ? trim($entities['email']) : null;
+    if ($email && !$this->extractEmailAddress($message)) {
+        $parts[] = "mejl {$email}";
+    }
+
+    $date = is_string($entities['date'] ?? null) ? trim($entities['date']) : null;
+    if ($date && !$this->extractInvoiceDate($message)) {
+        $parts[] = $date;
+    }
+
+    $period = $entities['period'] ?? null;
+    if (is_string($period) && trim($period) !== '' && !$this->extractInvoicePeriod($message)) {
+        $parts[] = trim($period);
+    }
+
+    if (in_array($intentName, ['download_invoice_pdf', 'send_invoice_email', 'show_invoice', 'show_invoice_items'], true)
+        && !$invoiceNumber
+        && $this->extractInvoiceNumber($message) === null
+        && $this->referencesPreviousInvoice($message)
+    ) {
+        $contextInvoiceNumber = session('chat_context.last_invoice_number');
+        if ($contextInvoiceNumber) {
+            $parts[] = "faktura {$contextInvoiceNumber}";
+        }
+    }
+
+    if (in_array($intentName, ['show_contract', 'show_contract_items', 'show_contract_invoices', 'show_last_invoice', 'unfiscalized_invoices', 'create_invoice'], true)
+        && !$contractNumber
+        && $this->extractContractNumber($message) === null
+        && $this->referencesPreviousContract($message)
+    ) {
+        $contextContractNumber = session('chat_context.last_contract_number');
+        if ($contextContractNumber) {
+            $parts[] = "ugovor {$contextContractNumber}";
+        }
+    }
+
+    return implode(' ', array_filter($parts));
 }
 
 private function unsupportedChatScopeMessage(): string
@@ -244,6 +314,120 @@ private function chatJsonResponse(string $content, string $provider, string $req
         'response' => $content,
         'stats' => ['time_s' => $elapsed, 'provider' => $provider, 'request_id' => $requestId, 'action' => $action],
     ], $extra));
+}
+
+private function rememberChatContext($contract = null, $invoice = null): void
+{
+    $context = session('chat_context', []);
+
+    if ($contract) {
+        $context['activeContractId'] = $contract->id;
+        $context['last_contract_id'] = $contract->id;
+        $context['last_contract_number'] = $contract->contract_number;
+    }
+
+    if ($invoice) {
+        $context['activeInvoiceId'] = $invoice->id;
+        $context['last_invoice_id'] = $invoice->id;
+        $context['last_invoice_number'] = $invoice->invoice_number;
+
+        if ($invoice->contract) {
+            $context['activeContractId'] = $invoice->contract->id;
+            $context['last_contract_id'] = $invoice->contract->id;
+            $context['last_contract_number'] = $invoice->contract->contract_number;
+        } elseif ($invoice->contract_id) {
+            $context['activeContractId'] = $invoice->contract_id;
+            $context['last_contract_id'] = $invoice->contract_id;
+            $contractNumber = \App\Models\Contract::whereKey($invoice->contract_id)->value('contract_number');
+            if ($contractNumber) {
+                $context['last_contract_number'] = $contractNumber;
+            }
+        }
+    }
+
+    if ($contract && $contract->company) {
+        $context['activeCompany'] = $contract->company->name;
+    } elseif ($invoice && $invoice->company) {
+        $context['activeCompany'] = $invoice->company->name;
+    }
+
+    $context['updated_at'] = now()->toDateTimeString();
+    session(['chat_context' => $context]);
+}
+
+private function rememberToolResult(string $intentName, string $response): void
+{
+    $context = session('chat_context', []);
+    $context['lastIntent'] = $intentName;
+    $context['previousToolResults'] = array_slice(array_merge($context['previousToolResults'] ?? [], [[
+        'intent' => $intentName,
+        'summary' => mb_substr($response, 0, 500),
+        'created_at' => now()->toDateTimeString(),
+    ]]), -5);
+
+    session(['chat_context' => $context]);
+}
+
+private function lastContextInvoice()
+{
+    $invoiceId = session('chat_context.last_invoice_id');
+    if (!$invoiceId) {
+        return null;
+    }
+
+    return \App\Models\Invoice::with([
+        'company',
+        'buyer',
+        'contract',
+        'user',
+        'items.product.vatRate',
+        'items.vatRate',
+    ])->find($invoiceId);
+}
+
+private function lastContextContract()
+{
+    $contractNumber = session('chat_context.last_contract_number');
+    if (!$contractNumber) {
+        return null;
+    }
+
+    return \App\Models\Contract::with([
+        'company',
+        'buyer',
+        'items.product.vatRate',
+        'items.vatRate',
+        'invoices',
+    ])->where('contract_number', $contractNumber)->first();
+}
+
+private function referencesPreviousInvoice(string $message): bool
+{
+    $message = mb_strtolower($message);
+
+    return str_contains($message, 'ta faktura')
+        || str_contains($message, 'tu fakturu')
+        || str_contains($message, 'te fakture')
+        || str_contains($message, 'ovu fakturu')
+        || str_contains($message, 'taj račun')
+        || str_contains($message, 'taj racun')
+        || str_contains($message, 'pdf')
+        || str_contains($message, 'pošalji je')
+        || str_contains($message, 'posalji je')
+        || str_contains($message, 'pošalji tu')
+        || str_contains($message, 'posalji tu');
+}
+
+private function referencesPreviousContract(string $message): bool
+{
+    $message = mb_strtolower($message);
+
+    return str_contains($message, 'taj ugovor')
+        || str_contains($message, 'tog ugovora')
+        || str_contains($message, 'tom ugovoru')
+        || str_contains($message, 'ovaj ugovor')
+        || str_contains($message, 'ovog ugovora')
+        || str_contains($message, 'njemu');
 }
 
 private function isCreateContractRequest(string $message): bool
@@ -403,6 +587,9 @@ private function isUnfiscalizedInvoicesRequest(string $message): bool
 private function handleUnfiscalizedInvoicesRequest(string $message): string
 {
     $contract = $this->findContractForChat($message);
+    if ($contract) {
+        $this->rememberChatContext($contract);
+    }
 
     if ($contract && $this->isLastInvoiceQuestion($message)) {
         $invoice = \App\Models\Invoice::with(['company', 'buyer', 'contract'])
@@ -414,6 +601,7 @@ private function handleUnfiscalizedInvoicesRequest(string $message): string
         if (!$invoice) {
             return "Ugovor {$contract->contract_number} nema fakture.";
         }
+        $this->rememberChatContext($contract, $invoice);
 
         if ($invoice->fic) {
             return "Da, zadnja faktura za ugovor {$contract->contract_number} je fiskalizovana.\nBroj fakture: {$invoice->invoice_number}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nFIC: {$invoice->fic}";
@@ -500,6 +688,7 @@ private function handleShowInvoiceRequest(string $message): string
 
     $status = $invoice->fic ? "fiskalizovana (FIC: {$invoice->fic})" : 'nije fiskalizovana';
     $contractText = $invoice->contract ? $invoice->contract->contract_number : '-';
+    $this->rememberChatContext($invoice->contract, $invoice);
 
     return "Faktura {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nPeriod: {$invoice->tax_period}\nNačin plaćanja: {$invoice->payment_method_type->value}\nStatus: {$status}\nBroj stavki: {$invoice->items->count()}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR";
 }
@@ -514,6 +703,8 @@ private function handleShowInvoiceItemsRequest(string $message): string
     if ($invoice->items->isEmpty()) {
         return "Faktura {$invoice->invoice_number} nema stavke.";
     }
+
+    $this->rememberChatContext($invoice->contract, $invoice);
 
     $lines = $invoice->items->map(function ($item) {
         $vatRate = $item->vatRate->percentage ?? 0;
@@ -539,6 +730,7 @@ private function handleDownloadInvoicePdfRequest(string $message): array
 
     $downloadUrl = route('invoice.pdf', ['id' => $invoice->id]);
     $contractText = $invoice->contract ? " za ugovor {$invoice->contract->contract_number}" : '';
+    $this->rememberChatContext($invoice->contract, $invoice);
 
     return [
         'response' => "Spreman je PDF fakture {$invoice->invoice_number}{$contractText}.\nKlikni na dugme za preuzimanje.",
@@ -560,6 +752,7 @@ private function handleSendInvoiceEmailRequest(Request $request, string $message
     }
 
     $invoice->loadMissing(['company', 'buyer', 'contract']);
+    $this->rememberChatContext($invoice->contract, $invoice);
     $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
     $contractText = $invoice->contract ? $invoice->contract->contract_number : '-';
 
@@ -614,6 +807,7 @@ private function sendInvoiceEmail(int $invoiceId, string $email, string $request
 
         $contractText = $invoice->contract ? " za ugovor {$invoice->contract->contract_number}" : '';
         $mailerNote = config('mail.default') === 'log' ? "\nNapomena: MAIL_MAILER je trenutno log, pa je email upisan u log umjesto stvarnog slanja." : '';
+        $this->rememberChatContext($invoice->contract, $invoice);
 
         return "Poslao sam fakturu {$invoice->invoice_number}{$contractText} na {$email}.{$mailerNote}";
     } catch (\Throwable $e) {
@@ -649,7 +843,7 @@ private function findInvoiceForPdfRequest(string $message)
 
     $contract = $this->findContractForChat($message);
     if (!$contract) {
-        return null;
+        return $this->lastContextInvoice();
     }
 
     $period = $this->extractInvoicePeriod($message);
@@ -691,7 +885,7 @@ private function findInvoiceForChat(string $message)
 {
     $invoiceNumber = $this->extractInvoiceNumber($message);
     if ($invoiceNumber === null) {
-        return null;
+        return $this->referencesPreviousInvoice($message) ? $this->lastContextInvoice() : null;
     }
 
     return \App\Models\Invoice::with([
@@ -784,6 +978,7 @@ private function handleShowContractInvoicesRequest(string $message): string
     if (!$contract) {
         return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži fakture za ctr 012” ili „da li je ugovor 12 fakturisan za april”.';
     }
+    $this->rememberChatContext($contract);
 
     $date = $this->extractInvoiceDate($message);
     $period = $date ? null : $this->extractInvoicePeriod($message);
@@ -809,10 +1004,12 @@ private function handleShowContractInvoicesRequest(string $message): string
     }
 
     if ($date || ($period && $invoices->count() === 1)) {
+        $this->rememberChatContext($contract, $invoices->first());
         return $this->formatInvoiceForContractResponse($contract, $invoices->first(), $date ? "za datum {$date->toDateString()}" : "za " . str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT) . "/{$period['year']}");
     }
 
     if ($this->isLastInvoiceQuestion($message)) {
+        $this->rememberChatContext($contract, $invoices->first());
         return $this->formatInvoiceForContractResponse($contract, $invoices->first(), 'zadnja');
     }
 
@@ -932,6 +1129,7 @@ private function handleShowContractItemsRequest(string $message): string
     if (!$contract) {
         return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži stavke za ctr 012” ili „stavke ugovora 12”.';
     }
+    $this->rememberChatContext($contract);
 
     if ($contract->items->isEmpty()) {
         return "Ugovor {$contract->contract_number} nema stavke.";
@@ -956,6 +1154,7 @@ private function handleShowContractRequest(string $message): string
     if (!$contract) {
         return 'Ne mogu da pronađem taj ugovor. Možeš napisati npr. „prikaži ctr 012”, „vidi ugovor 12” ili „what about ctr012”.';
     }
+    $this->rememberChatContext($contract);
 
     [$totalWithoutVat, $totalVat, $totalWithVat] = $this->calculateContractTotals($contract);
     $invoiceCount = $contract->invoices->count();
@@ -963,6 +1162,9 @@ private function handleShowContractRequest(string $message): string
     $lastInvoiceText = $lastInvoice
         ? "{$lastInvoice->invoice_number} ({$lastInvoice->issued_at->format('Y-m-d')}, {$lastInvoice->total_price_to_pay} EUR)"
         : 'nema faktura';
+    if ($lastInvoice) {
+        $this->rememberChatContext($contract, $lastInvoice);
+    }
 
     return "Ugovor {$contract->contract_number}\nFirma: {$contract->company->name}\nKupac: {$contract->buyer->name}\nStatus: {$contract->status}\nPeriod: {$contract->start_date->format('Y-m-d')} - {$contract->end_date->format('Y-m-d')}\nKreiranje fakture: {$contract->billing_frequency}\nDan izdavanja: {$contract->issue_day}\nNačin plaćanja: {$contract->default_payment_method}\nBroj stavki: {$contract->items->count()}\nBroj faktura: {$invoiceCount}\nZadnja faktura: {$lastInvoiceText}\n\nUkupno bez PDV-a: {$totalWithoutVat} EUR\nPDV: {$totalVat} EUR\nUkupno za plaćanje: {$totalWithVat} EUR";
 }
@@ -971,7 +1173,14 @@ private function findContractForChat(string $message)
 {
     $contractNumber = $this->extractContractNumber($message);
     if ($contractNumber === null) {
-        return null;
+        if ($this->referencesPreviousContract($message)) {
+            return $this->lastContextContract();
+        }
+
+        $entities = session('current_ai_entities', []);
+        $partyName = $entities['customer_name'] ?? $entities['company_name'] ?? null;
+
+        return is_string($partyName) ? $this->findContractByPartyName($partyName) : null;
     }
 
     return \App\Models\Contract::with([
@@ -981,6 +1190,68 @@ private function findContractForChat(string $message)
         'items.vatRate',
         'invoices',
     ])->where('contract_number', $contractNumber)->first();
+}
+
+private function findContractByPartyName(string $partyName)
+{
+    $partyName = trim($partyName);
+    if ($partyName === '') {
+        return null;
+    }
+
+    $contracts = \App\Models\Contract::with([
+        'company',
+        'buyer',
+        'items.product.vatRate',
+        'items.vatRate',
+        'invoices',
+    ])->latest('id')->take(100)->get();
+
+    $normalizedNeedle = $this->normalizeSearchText($partyName);
+
+    return $contracts
+        ->sortByDesc(function ($contract) use ($normalizedNeedle) {
+            $companyScore = $this->fuzzyNameScore($normalizedNeedle, $contract->company->name ?? '');
+            $buyerScore = $this->fuzzyNameScore($normalizedNeedle, $contract->buyer->name ?? '');
+
+            return max($companyScore, $buyerScore);
+        })
+        ->first(function ($contract) use ($normalizedNeedle) {
+            $companyScore = $this->fuzzyNameScore($normalizedNeedle, $contract->company->name ?? '');
+            $buyerScore = $this->fuzzyNameScore($normalizedNeedle, $contract->buyer->name ?? '');
+
+            return max($companyScore, $buyerScore) >= 70;
+        });
+}
+
+private function normalizeSearchText(string $text): string
+{
+    $text = mb_strtolower($text);
+    $replacements = ['č' => 'c', 'ć' => 'c', 'š' => 's', 'đ' => 'dj', 'ž' => 'z'];
+    $text = strtr($text, $replacements);
+
+    return preg_replace('/[^a-z0-9]+/u', '', $text) ?: '';
+}
+
+private function fuzzyNameScore(string $needle, string $candidate): int
+{
+    $candidate = $this->normalizeSearchText($candidate);
+    if ($needle === '' || $candidate === '') {
+        return 0;
+    }
+
+    if (str_contains($candidate, $needle) || str_contains($needle, $candidate)) {
+        return 100;
+    }
+
+    $maxLength = max(strlen($needle), strlen($candidate));
+    if ($maxLength === 0) {
+        return 0;
+    }
+
+    $distance = levenshtein($needle, $candidate);
+
+    return max(0, (int) round((1 - ($distance / $maxLength)) * 100));
 }
 
 private function calculateContractTotals($contract): array
@@ -1030,7 +1301,16 @@ private function handlePendingActionResponse(Request $request, string $message, 
     if (($pendingAction['type'] ?? null) === 'create_contract') {
         $request->session()->forget('pending_chat_action');
 
-        return $this->createContractFromPayload($pendingAction['payload'], $requestId, $pendingAction['message'] ?? '');
+        $response = $this->createContractFromPayload($pendingAction['payload'], $requestId, $pendingAction['message'] ?? '');
+        $contractNumber = $pendingAction['payload']['contract_number'] ?? null;
+        if ($contractNumber) {
+            $contract = \App\Models\Contract::where('contract_number', $contractNumber)->first();
+            if ($contract) {
+                $this->rememberChatContext($contract);
+            }
+        }
+
+        return $response;
     }
 
     if (($pendingAction['type'] ?? null) === 'create_invoice') {
@@ -1050,6 +1330,7 @@ private function handlePendingActionResponse(Request $request, string $message, 
         }
 
         $invoice = $this->createInvoiceFromContract($contract, $issueDate, $requestId);
+        $this->rememberChatContext($contract, $invoice);
         $items = $invoice->items->map(fn($item) => "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR")->join("\n");
 
         return "Kreirana je faktura {$invoice->invoice_number} za ugovor {$contract->contract_number}.\nDatum: {$invoice->issued_at->format('Y-m-d')}\nKupac: {$invoice->buyer->name}\nUkupno bez PDV-a: {$invoice->total_price_without_vat} EUR\nPDV: {$invoice->total_vat_amount} EUR\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nStavke:\n{$items}";
@@ -1710,6 +1991,8 @@ private function createContractFromPayload(array $payload, string $requestId, st
         'contract_id' => $contract->id,
         'contract_number' => $contract->contract_number,
     ]);
+
+    $this->rememberChatContext($contract);
 
     $items = $contract->items->map(fn($item) => "- {$item->product->name}: {$item->quantity} x {$item->unit_price} EUR")->join("\n");
 
