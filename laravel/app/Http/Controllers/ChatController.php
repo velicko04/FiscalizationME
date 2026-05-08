@@ -117,7 +117,26 @@ private function classifyChatIntent(string $message, array $history, string $pro
         'conversation_context' => session('chat_context', []),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-    $systemPrompt = "Vrati samo validan JSON bez markdowna.
+    $systemPrompt = $provider === 'apple'
+        ? "Return only valid JSON. No markdown.
+Task: choose the billing app intent for USER_MESSAGE.
+Allowed intents: create_contract, create_invoice, show_contract, show_contract_items, show_contract_invoices, show_last_invoice, show_invoice, show_invoice_items, send_invoice_email, download_invoice_pdf, unfiscalized_invoices, unknown.
+Return exactly:
+{\"intent\":\"...\",\"confidence\":0.0,\"entities\":{\"contract_number\":null,\"invoice_number\":null,\"company_name\":null,\"customer_name\":null,\"email\":null,\"date\":null,\"period\":null},\"reason\":\"...\"}
+Use actions only if USER_MESSAGE clearly asks for several actions joined by words like and/then/also:
+{\"intent\":\"multi_action\",\"confidence\":0.9,\"actions\":[{\"intent\":\"show_last_invoice\",\"entities\":{}},{\"intent\":\"download_invoice_pdf\",\"entities\":{}}],\"reason\":\"...\"}
+Mapping:
+create invoice/fakturisi contract => create_invoice.
+create contract => create_contract.
+show/find contract => show_contract.
+show contract items => show_contract_items.
+show invoices for contract => show_contract_invoices.
+last invoice => show_last_invoice.
+PDF/download => download_invoice_pdf.
+send/email/mail, only when email/send words are present => send_invoice_email.
+unfiscalized/fiscalized question => unfiscalized_invoices.
+Extract contract numbers like CTR-001, ctr 001, 001 into contract_number."
+        : "Vrati samo validan JSON bez markdowna.
 Ti si conversational AI router za FiscalizationME. Koristi recent_history i conversation_context. Nikad ne ignoriši prethodni kontekst.
 Ako korisnik kaže 'taj ugovor', 'tog ugovora', 'njegove fakture', 'ta faktura', 'tu fakturu', 'ove stavke', koristi aktivni entitet iz conversation_context.
 Ako poruka nije o podržanim akcijama, vrati unknown.
@@ -336,7 +355,7 @@ private function unsupportedChatScopeMessage(): string
 
 private function callAppleIntentClassifier(string $message, string $systemPrompt, string $requestId): string
 {
-    $prompt = "{$systemPrompt}\n\nUSER_MESSAGE:\n{$message}";
+    $prompt = $this->appleSafeText($systemPrompt, false) . "\n\nUSER_MESSAGE:\n" . $this->appleSafeText($message);
 
     $this->logPromptRequest($requestId, 'apple', 'apple_intent_classifier', [
         'prompt' => $prompt,
@@ -345,6 +364,7 @@ private function callAppleIntentClassifier(string $message, string $systemPrompt
 
     $ch = curl_init('http://localhost:8765');
     curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $prompt);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 60);
@@ -1563,7 +1583,19 @@ private function buildInvoiceCreationContextJson(string $message): string
 
 private function extractInvoicePayloadWithAi(string $message, string $contextJson, string $provider, string $requestId): array
 {
-    $systemPrompt = "Ti izvlačiš podatke za pripremu fakture u FiscalizationME aplikaciji.
+    $systemPrompt = $provider === 'apple'
+        ? "Extract data for preparing an invoice in the FiscalizationME app.
+Return only valid JSON, without markdown and without explanation.
+Do not create an invoice and do not answer the user.
+From the user message, detect the contract and optional invoice date or period.
+The user's text can contain local terms such as ugovor=contract, faktura=invoice, fakturisi=create invoice, mjesec=month.
+
+CONTEXT:
+{$contextJson}
+
+Return JSON:
+{\"contract_number\": string|null, \"issue_date\": \"YYYY-MM-DD\"|null}"
+        : "Ti izvlačiš podatke za pripremu fakture u FiscalizationME aplikaciji.
 Vrati samo validan JSON bez markdowna i bez objašnjenja.
 Ne kreiraš fakturu i ne odgovaraš korisniku.
 Iz korisničke poruke prepoznaj ugovor i opcioni datum/period fakture.
@@ -1858,7 +1890,28 @@ private function entityMatchesMessage(?string $name, string $message): bool
 
 private function extractContractPayloadWithAi(string $message, string $contextJson, string $provider, string $requestId): array
 {
-    $systemPrompt = "Vrati samo JSON za nacrt ugovora. Koristi ID iz konteksta kad se naziv poklapa.
+    $systemPrompt = $provider === 'apple'
+        ? "Return only JSON for a contract draft. Use IDs from CONTEXT when names match.
+Do not invent items: extract only items mentioned in the user message. If a new item is not in products, product_id=null and price must come from the user message.
+Defaults: billing_frequency=monthly, status=active, default_type_of_invoice=NONCASH, default_payment_method=ACCOUNT, issue_day=start_date day or 1.
+If company, buyer, or product is not in CONTEXT, the matching id must be null.
+The user's text can contain local terms such as ugovor=contract, izmedju=between, firma=company, kupac=buyer, stavke=items.
+CONTEXT: {$contextJson}
+JSON schema:
+{
+  \"contract_number\": string|null,
+  \"company_id\": number|null,
+  \"buyer_id\": number|null,
+  \"start_date\": \"YYYY-MM-DD\"|null,
+  \"end_date\": \"YYYY-MM-DD\"|null,
+  \"billing_frequency\": \"monthly\"|\"quarterly\"|\"yearly\",
+  \"issue_day\": number,
+  \"status\": \"active\"|\"paused\"|\"expired\",
+  \"default_type_of_invoice\": \"NONCASH\"|\"CASH\",
+  \"default_payment_method\": \"ACCOUNT\"|\"CARD\"|\"BANKNOTE\"|\"OTHER\"|\"VOUCHER\"|\"COMPENSATION\",
+  \"items\": [{\"product_id\": number|null, \"name\": string, \"code\": string|null, \"quantity\": number, \"price\": number, \"vat_rate_id\": number|null}]
+}"
+        : "Vrati samo JSON za nacrt ugovora. Koristi ID iz konteksta kad se naziv poklapa.
 Ne izmišljaj stavke: izvuci samo stavke pomenute u poruci. Ako nova stavka nije u products, product_id=null i cijena mora biti iz poruke.
 Default: billing_frequency=monthly, status=active, default_type_of_invoice=NONCASH, default_payment_method=ACCOUNT, issue_day=dan start_date ili 1.
 Ako firma/kupac/proizvod nije u kontekstu, odgovarajući id je null.
@@ -1893,7 +1946,7 @@ JSON schema:
 
 private function callAppleJsonExtractor(string $message, string $systemPrompt, string $requestId, string $promptType): string
 {
-    $prompt = "{$systemPrompt}\n\nUSER_MESSAGE:\n{$message}";
+    $prompt = $this->appleSafeText($systemPrompt, false) . "\n\nUSER_MESSAGE:\n" . $this->appleSafeText($message);
 
     $this->logPromptRequest($requestId, 'apple', $promptType, [
         'prompt' => $prompt,
@@ -1902,6 +1955,7 @@ private function callAppleJsonExtractor(string $message, string $systemPrompt, s
 
     $ch = curl_init('http://localhost:8765');
     curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $prompt);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 60);
@@ -2533,13 +2587,14 @@ private function callAppleIntelligence(string $message, string $promptDataJson, 
     // Apple Foundation Models trenutno ne podržava srpski kao jezik generisanja.
     // Zato Apple dobija prompt na engleskom, a odgovor se poslije prevodi na srpski.
 
-    $prompt = "Answer only in English. Be short, concrete, and use only the provided FiscalizationME data.
+    $prompt = $this->appleSafeText("Answer only in English. Be short, concrete, and use only the provided FiscalizationME data.
 Use only the JSON data. If a value is missing from the JSON, say that the value is not available.
+The user may use local business words: ugovor=contract, faktura=invoice, firma=company, kupac=buyer.
 
 DATA:
 {$promptDataJson}
 
-User question: {$message}";
+User question: ", false) . $this->appleSafeText($message);
 
     $this->logPromptRequest($requestId, 'apple', 'apple_main', [
         'prompt' => $prompt,
@@ -2548,6 +2603,7 @@ User question: {$message}";
 
     $ch = curl_init('http://localhost:8765');
     curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $prompt);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 60);
@@ -2574,6 +2630,76 @@ User question: {$message}";
     ]);
 
     return $response ?: 'Greška u komunikaciji sa Apple Intelligence servisom.';
+}
+
+private function appleSafeText(string $text, bool $normalizeBusinessTerms = true): string
+{
+    $text = strtr($text, [
+        'č' => 'c',
+        'ć' => 'c',
+        'š' => 's',
+        'đ' => 'dj',
+        'ž' => 'z',
+        'Č' => 'C',
+        'Ć' => 'C',
+        'Š' => 'S',
+        'Đ' => 'Dj',
+        'Ž' => 'Z',
+    ]);
+
+    if (!$normalizeBusinessTerms) {
+        return $text;
+    }
+
+    $replacements = [
+        '/\bfakturisi\b/i' => 'create invoice',
+        '/\bfakturise\b/i' => 'create invoice',
+        '/\bfakturisanje\b/i' => 'invoice creation',
+        '/\bnapravi\b/i' => 'create',
+        '/\bkreiraj\b/i' => 'create',
+        '/\bdodaj\b/i' => 'create',
+        '/\bprikazi\b/i' => 'show',
+        '/\bvidi\b/i' => 'show',
+        '/\bdaj\b/i' => 'show',
+        '/\bnadji\b/i' => 'find',
+        '/\bugovor(a|u|om)?\b/i' => 'contract',
+        '/\bfaktur(a|e|u|om)?\b/i' => 'invoice',
+        '/\bracun(a|e|u|om)?\b/i' => 'invoice',
+        '/\bstavk(a|e|u|ama)?\b/i' => 'items',
+        '/\bfirma\b/i' => 'company',
+        '/\bfirme\b/i' => 'companies',
+        '/\bkupac\b/i' => 'buyer',
+        '/\bkupca\b/i' => 'buyer',
+        '/\bizmedju\b/i' => 'between',
+        '/\bod\b/i' => 'from',
+        '/\bdo\b/i' => 'to',
+        '/\bza\b/i' => 'for',
+        '/\bsa\b/i' => 'with',
+        '/\bkoji\b/i' => 'that',
+        '/\btraje\b/i' => 'lasts',
+        '/\bzadnja\b/i' => 'last',
+        '/\bzadnju\b/i' => 'last',
+        '/\bposljednja\b/i' => 'last',
+        '/\bposlednja\b/i' => 'last',
+        '/\bposalji\b/i' => 'send',
+        '/\bmejl\b/i' => 'email',
+        '/\bnefiskalizovan(a|e|u|ih)?\b/i' => 'unfiscalized',
+        '/\bfiskalizovan(a|e|u)?\b/i' => 'fiscalized',
+        '/\bmjesec\b/i' => 'month',
+        '/\bjanuar\b/i' => 'January',
+        '/\bfebruar\b/i' => 'February',
+        '/\bmart\b/i' => 'March',
+        '/\bmaj\b/i' => 'May',
+        '/\bjun\b/i' => 'June',
+        '/\bjul\b/i' => 'July',
+        '/\bavgust\b/i' => 'August',
+        '/\bseptembar\b/i' => 'September',
+        '/\boktobar\b/i' => 'October',
+        '/\bnovembar\b/i' => 'November',
+        '/\bdecembar\b/i' => 'December',
+    ];
+
+    return preg_replace(array_keys($replacements), array_values($replacements), $text) ?? $text;
 }
 
 private function isUnsupportedAppleLanguageError(string $content): bool
