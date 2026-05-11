@@ -49,6 +49,19 @@ class ChatController extends Controller
         ]));
     }
 
+    if (session()->has('pending_chat_action')) {
+        $startTime = microtime(true);
+        $content = $this->handlePendingActionModification($request, $message, $provider, $requestId);
+
+        if (is_array($content)) {
+            $this->rememberToolResult('pending_action_edit', $content['response'] ?? '');
+            return $this->chatJsonResponse($content['response'], $provider, $requestId, 'pending_action_edit', $startTime, $content);
+        }
+
+        $this->rememberToolResult('pending_action_edit', $content);
+        return $this->chatJsonResponse($content, $provider, $requestId, 'pending_action_edit', $startTime);
+    }
+
     return $this->handleAiRoutedMessage($request, $message, $history, $provider, $requestId);
 }
 
@@ -432,7 +445,7 @@ private function isLikelyDraftContinuation(string $message, string $intentName):
         return true;
     }
 
-    return preg_match('/^(za|sa|od|do|kupac|firma|kompanija|period|stavka|stavke|proizvod|usluga|datum|traje|ima|dodaj|i\s+)/u', $normalizedMessage) === 1
+    return preg_match('/^(za|sa|od|do|kupac|firma|kompanija|period|stavka|stavke|proizvod|usluga|datum|traje|ima|dodaj|ukloni|obrisi|obriši|izbrisi|izbriši|promijeni|izmijeni|cijena|kosta|košta|i\s+)/u', $normalizedMessage) === 1
         || preg_match('/\b\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4}\b/u', $normalizedMessage) === 1
         || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:x|kom|eur|€)\b/u', $normalizedMessage) === 1;
 }
@@ -1508,6 +1521,55 @@ private function confirmationQuickActions(): array
     ];
 }
 
+private function handlePendingActionModification(Request $request, string $message, string $provider, string $requestId): array|string
+{
+    $pendingAction = session('pending_chat_action');
+
+    if (!is_array($pendingAction)) {
+        return 'Nema akcije koja čeka izmjenu.';
+    }
+
+    if (($pendingAction['type'] ?? null) !== 'create_contract') {
+        return 'Prvo potvrdi ili otkaži trenutni preview, pa onda pošalji novu izmjenu.';
+    }
+
+    $payload = is_array($pendingAction['payload'] ?? null) ? $pendingAction['payload'] : [];
+    if ($payload === []) {
+        return 'Ne mogu da izmijenim preview jer nacrt ugovora nije validan. Pošalji zahtjev ponovo.';
+    }
+
+    $contextJson = $this->buildContractCreationContextJson($message);
+    $updatedPayload = $this->extractContractPreviewEditWithAi($payload, $message, $contextJson, $provider, $requestId);
+
+    if (isset($updatedPayload['error'])) {
+        return $updatedPayload['error'];
+    }
+
+    $updatedPayload = $this->mergeContractDraftPayload([], $updatedPayload);
+    if (empty($updatedPayload['contract_number'])) {
+        $updatedPayload['contract_number'] = $payload['contract_number'] ?? $this->generateContractNumber();
+    }
+
+    $combinedMessage = trim(($pendingAction['message'] ?? '') . "\n" . $message);
+    $validationErrors = $this->validateContractPayload($updatedPayload, $combinedMessage);
+    if ($validationErrors !== []) {
+        return "Ne mogu da primijenim izmjenu jer nacrt više nije validan:\n- "
+            . implode("\n- ", $validationErrors)
+            . "\n\nDopiši izmjenu preciznije, npr. „dodaj 1 stolicu po 80 EUR” ili „ukloni čarape”.";
+    }
+
+    session()->put('pending_chat_action', [
+        'type' => 'create_contract',
+        'payload' => $updatedPayload,
+        'message' => $combinedMessage,
+    ]);
+
+    return [
+        'response' => "Izmijenio sam preview ugovora.\n\n" . $this->buildContractPreviewFromPayload($updatedPayload, $combinedMessage),
+        'quick_actions' => $this->confirmationQuickActions(),
+    ];
+}
+
 private function handlePendingActionResponse(Request $request, string $message, string $requestId): array|string
 {
     $normalizedMessage = trim(mb_strtolower($message));
@@ -2242,6 +2304,50 @@ JSON schema:
     return $this->decodeJsonPayload($content, $requestId, $provider, $provider . '_create_contract_extract');
 }
 
+private function extractContractPreviewEditWithAi(array $currentPayload, string $message, string $contextJson, string $provider, string $requestId): array
+{
+    $currentPayloadJson = json_encode($currentPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $systemPrompt = $provider === 'apple'
+        ? "Return only JSON. Apply USER_MESSAGE as an edit to CURRENT_CONTRACT_DRAFT.
+Keep every unchanged field exactly as it is. If the user asks to add an item, append it. If the user asks to remove/delete an item, remove the best matching item by name. If the user changes price, quantity, period, company, buyer, or date, update only that field.
+When adding a new item not in CONTEXT products, product_id=null, quantity defaults to 1 if missing, and price must come from USER_MESSAGE.
+Return the complete updated contract draft in the same schema.
+
+CURRENT_CONTRACT_DRAFT:
+{$currentPayloadJson}
+
+CONTEXT:
+{$contextJson}"
+        : "Vrati samo JSON. Primijeni USER_MESSAGE kao izmjenu na CURRENT_CONTRACT_DRAFT.
+Zadrži svako nepromijenjeno polje tačno kako jeste. Ako korisnik traži dodavanje stavke, dodaj je. Ako traži uklanjanje/brisanje stavke, ukloni najbolji pogodak po nazivu. Ako mijenja cijenu, količinu, period, firmu, kupca ili datum, izmijeni samo to polje.
+Ako dodaje novu stavku koja nije u CONTEXT products, product_id=null, quantity je 1 ako nije navedena, a price mora biti iz USER_MESSAGE.
+Vrati kompletan ažurirani nacrt ugovora u istoj JSON šemi.
+
+CURRENT_CONTRACT_DRAFT:
+{$currentPayloadJson}
+
+CONTEXT:
+{$contextJson}";
+
+    $content = match ($provider) {
+        'apple' => $this->callAppleJsonExtractor($message, $systemPrompt, $requestId, 'apple_contract_preview_edit'),
+        'gemini' => $this->callGemini($message, $systemPrompt, $requestId, 'gemini_contract_preview_edit'),
+        default => $this->callOllama($message, [], $systemPrompt, $requestId, 'ollama_contract_preview_edit'),
+    };
+
+    if (str_starts_with($content, 'Greška') || str_contains($content, 'unsupportedLanguageOrLocale')) {
+        return ['error' => $content];
+    }
+
+    return $this->decodeJsonPayload(
+        $content,
+        $requestId,
+        $provider,
+        $provider . '_contract_preview_edit',
+        'Model nije vratio validan JSON za izmjenu preview-a. Pokušaj npr. „dodaj 1 stolicu po 80 EUR” ili „ukloni čarape”.'
+    );
+}
+
 private function callAppleJsonExtractor(string $message, string $systemPrompt, string $requestId, string $promptType): string
 {
     $prompt = $this->appleSafeText($systemPrompt, false) . "\n\nUSER_MESSAGE:\n" . $this->appleSafeText($message);
@@ -2541,7 +2647,7 @@ private function messageMentionsExplicitPrice(string $message): bool
 
     return str_contains($normalizedMessage, 'cijena')
         || str_contains($normalizedMessage, 'price')
-        || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:eur|€)\b/u', $normalizedMessage) === 1;
+        || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:eur|e|€)\b/u', $normalizedMessage) === 1;
 }
 
 private function generateContractNumber(): string
