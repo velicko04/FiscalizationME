@@ -87,6 +87,19 @@ PODACI_JSON:
 private function handleAiRoutedMessage(Request $request, string $message, array $history, string $provider, string $requestId)
 {
     $startTime = microtime(true);
+
+    if (!$this->hasActiveDraft() && $this->isObviousCreateContractMessage($message)) {
+        $content = $this->handleCreateContractRequest($request, $message, $provider, $requestId);
+
+        if (is_array($content)) {
+            $this->rememberToolResult('create_contract', $content['response'] ?? '');
+            return $this->chatJsonResponse($content['response'], $provider, $requestId, 'create_contract_direct', $startTime, $content);
+        }
+
+        $this->rememberToolResult('create_contract', $content);
+        return $this->chatJsonResponse($content, $provider, $requestId, 'create_contract_direct', $startTime);
+    }
+
     $intent = $this->classifyChatIntent($message, $history, $provider, $requestId);
 
     if (isset($intent['error'])) {
@@ -448,6 +461,24 @@ private function isLikelyDraftContinuation(string $message, string $intentName):
     return preg_match('/^(za|sa|od|do|kupac|firma|kompanija|period|stavka|stavke|proizvod|usluga|datum|traje|ima|dodaj|ukloni|obrisi|obriši|izbrisi|izbriši|promijeni|izmijeni|cijena|kosta|košta|i\s+)/u', $normalizedMessage) === 1
         || preg_match('/\b\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4}\b/u', $normalizedMessage) === 1
         || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:x|kom|eur|€)\b/u', $normalizedMessage) === 1;
+}
+
+private function isObviousCreateContractMessage(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    if (str_contains($normalizedMessage, 'faktura') || str_contains($normalizedMessage, 'fakturu') || str_contains($normalizedMessage, 'invoice')) {
+        return false;
+    }
+
+    return (str_contains($normalizedMessage, 'ugovor') || str_contains($normalizedMessage, 'contract'))
+        && (
+            str_contains($normalizedMessage, 'napravi')
+            || str_contains($normalizedMessage, 'kreiraj')
+            || str_contains($normalizedMessage, 'dodaj')
+            || str_contains($normalizedMessage, 'create')
+            || str_contains($normalizedMessage, 'make')
+        );
 }
 
 private function handleActiveDraftContinuation(Request $request, string $message, string $provider, string $requestId): array|string
@@ -1529,6 +1560,10 @@ private function handlePendingActionModification(Request $request, string $messa
         return 'Nema akcije koja čeka izmjenu.';
     }
 
+    if (($pendingAction['type'] ?? null) === 'send_invoice_email') {
+        return $this->handleSendInvoiceEmailPreviewModification($pendingAction, $message);
+    }
+
     if (($pendingAction['type'] ?? null) !== 'create_contract') {
         return 'Prvo potvrdi ili otkaži trenutni preview, pa onda pošalji novu izmjenu.';
     }
@@ -1568,6 +1603,61 @@ private function handlePendingActionModification(Request $request, string $messa
         'response' => "Izmijenio sam preview ugovora.\n\n" . $this->buildContractPreviewFromPayload($updatedPayload, $combinedMessage),
         'quick_actions' => $this->confirmationQuickActions(),
     ];
+}
+
+private function handleSendInvoiceEmailPreviewModification(array $pendingAction, string $message): array|string
+{
+    $email = $this->extractEmailAddress($message) ?: ($pendingAction['email'] ?? null);
+    if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return 'Ne mogu da izmijenim preview slanja jer ne vidim validnu email adresu. Napiši npr. „promijeni mejl na test@example.com”.';
+    }
+
+    $invoiceId = (int) ($pendingAction['invoice_id'] ?? 0);
+    if ($this->messageMentionsInvoiceSelection($message)) {
+        $selectedInvoice = $this->findInvoiceForPdfRequest($message);
+        if ($selectedInvoice) {
+            $invoiceId = (int) $selectedInvoice->id;
+        }
+    }
+
+    $invoice = \App\Models\Invoice::with(['company', 'buyer', 'contract'])->find($invoiceId);
+    if (!$invoice) {
+        return 'Ne mogu da pronađem fakturu za izmjenu preview-a slanja.';
+    }
+
+    $this->rememberChatContext($invoice->contract, $invoice);
+    $filename = 'faktura-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->invoice_number) . '.pdf';
+    $contractText = $invoice->contract ? $invoice->contract->contract_number : '-';
+
+    session()->put('pending_chat_action', [
+        'type' => 'send_invoice_email',
+        'invoice_id' => $invoice->id,
+        'email' => $email,
+        'message' => trim(($pendingAction['message'] ?? '') . "\n" . $message),
+    ]);
+
+    return [
+        'response' => "Izmijenio sam preview slanja fakture.\n\nPregled slanja fakture prije slanja:\nFaktura: {$invoice->invoice_number}\nUgovor: {$contractText}\nFirma: {$invoice->company->name}\nKupac: {$invoice->buyer->name}\nDatum: {$invoice->issued_at->format('Y-m-d')}\nUkupno za plaćanje: {$invoice->total_price_to_pay} EUR\nPrimaoc: {$email}\nPDF prilog: {$filename}",
+        'quick_actions' => $this->confirmationQuickActions(),
+    ];
+}
+
+private function messageMentionsInvoiceSelection(string $message): bool
+{
+    $normalizedMessage = mb_strtolower($message);
+
+    return $this->extractInvoiceNumber($message) !== null
+        || $this->extractContractNumber($message) !== null
+        || $this->extractInvoicePeriod($message) !== null
+        || $this->extractInvoiceDate($message) !== null
+        || str_contains($normalizedMessage, 'zadnja')
+        || str_contains($normalizedMessage, 'poslednja')
+        || str_contains($normalizedMessage, 'posljednja')
+        || str_contains($normalizedMessage, 'najnovija')
+        || str_contains($normalizedMessage, 'last')
+        || str_contains($normalizedMessage, 'faktura')
+        || str_contains($normalizedMessage, 'fakturu')
+        || str_contains($normalizedMessage, 'invoice');
 }
 
 private function handlePendingActionResponse(Request $request, string $message, string $requestId): array|string
@@ -2005,21 +2095,37 @@ private function createInvoiceFromContract($contract, \Carbon\Carbon $issueDate,
 
 private function handleCreateContractRequest(Request $request, string $message, string $provider, string $requestId): array|string
 {
-    $contextJson = $this->buildContractCreationContextJson($message);
-    $extracted = $this->extractContractPayloadWithAi($message, $contextJson, $provider, $requestId);
+    $normalizedMessage = $this->normalizeContractMessageForAi($message);
+    $contextJson = $this->buildContractCreationContextJson($normalizedMessage);
+    $existingDraft = $this->getDraftPayload('create_contract');
+    $fastPayload = $existingDraft !== []
+        ? $this->tryApplyContractDraftFastEdit($existingDraft, $normalizedMessage)
+        : $this->tryBuildContractPayloadFast($normalizedMessage);
+
+    if ($fastPayload !== null) {
+        $extracted = $fastPayload;
+        $usesDraftEdit = $existingDraft !== [];
+    } else {
+        $usesDraftEdit = $existingDraft !== [];
+        $extracted = $usesDraftEdit
+            ? $this->extractContractPreviewEditWithAi($existingDraft, $normalizedMessage, $contextJson, $provider, $requestId)
+            : $this->extractContractPayloadWithAi($normalizedMessage, $contextJson, $provider, $requestId);
+    }
 
     if (isset($extracted['error'])) {
         return $extracted['error'];
     }
 
-    $existingDraft = $this->getDraftPayload('create_contract');
-    $extracted = $this->mergeContractDraftPayload($existingDraft, $extracted);
-    $draftMessages = $this->draftSourceMessages('create_contract', $message);
+    $extracted = $this->normalizeContractPayloadAfterAi($extracted, $normalizedMessage);
+    $extracted = $usesDraftEdit
+        ? $this->mergeContractDraftPayload([], $extracted)
+        : $this->mergeContractDraftPayload($existingDraft, $extracted);
+    $draftMessages = $this->draftSourceMessages('create_contract', $normalizedMessage);
     $combinedMessage = implode("\n", $draftMessages);
 
     $validationErrors = $this->validateContractPayload($extracted, $combinedMessage);
     if ($validationErrors !== []) {
-        $this->storeDraftAction($request, 'create_contract', $extracted, $message);
+        $this->storeDraftAction($request, 'create_contract', $extracted, $normalizedMessage);
 
         return $this->buildContractDraftQuestion($extracted, $validationErrors);
     }
@@ -2098,6 +2204,272 @@ private function buildContractCreationContextJson(string $message): string
         'vat_rates' => $vatRates,
         'defaults' => ['billing_frequency' => 'monthly', 'status' => 'active', 'invoice_type' => 'NONCASH', 'payment_method' => 'ACCOUNT'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+private function normalizeContractMessageForAi(string $message): string
+{
+    $message = preg_replace('/\b(\d+(?:[.,]\d+)?)\s*e\b/iu', '$1 EUR', $message) ?? $message;
+
+    return preg_replace('/\b(od|za)\s+(\d+(?:[.,]\d+)?)\s*(?:eur|€)\b/iu', 'po $2 EUR', $message) ?? $message;
+}
+
+private function normalizeContractPayloadAfterAi(array $payload, string $message): array
+{
+    if (empty($payload['items']) || !is_array($payload['items'])) {
+        return $payload;
+    }
+
+    $payload['items'] = array_map(function ($item) use ($message) {
+        if (!is_array($item)) {
+            return $item;
+        }
+
+        $name = trim((string) ($item['name'] ?? ''));
+        $price = isset($item['price']) ? (float) $item['price'] : 0.0;
+
+        if ($name !== '' && preg_match('/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*(?:eur|€)$/iu', $name, $matches) === 1) {
+            $name = trim($matches[1]);
+            if ($price <= 0) {
+                $price = (float) str_replace(',', '.', $matches[2]);
+            }
+        }
+
+        if ($price <= 0 && $name !== '') {
+            $priceFromMessage = $this->extractPriceForItemName($message, $name);
+            if ($priceFromMessage !== null) {
+                $price = $priceFromMessage;
+            }
+        }
+
+        $item['name'] = $name;
+        $item['price'] = $price;
+
+        return $item;
+    }, $payload['items']);
+
+    return $payload;
+}
+
+private function extractPriceForItemName(string $message, string $itemName): ?float
+{
+    $normalizedItem = $this->normalizeSearchText($itemName);
+    if ($normalizedItem === '') {
+        return null;
+    }
+
+    $segments = preg_split('/\s+(?:i|,|;)\s+/iu', $message) ?: [$message];
+    foreach ($segments as $segment) {
+        if (!str_contains($this->normalizeSearchText($segment), $normalizedItem)) {
+            continue;
+        }
+
+        if (preg_match('/\b(?:po|za|od|=|je|kosta|košta)\s*(\d+(?:[.,]\d+)?)\s*(?:eur|€)\b/iu', $segment, $matches) === 1) {
+            return (float) str_replace(',', '.', $matches[1]);
+        }
+    }
+
+    return null;
+}
+
+private function tryBuildContractPayloadFast(string $message): ?array
+{
+    if (!$this->isObviousCreateContractMessage($message)) {
+        return null;
+    }
+
+    $company = $this->findMentionedCompany($message);
+    $buyer = $this->findMentionedBuyer($message);
+    [$startDate, $endDate] = $this->extractContractPeriodFast($message);
+    $items = $this->extractContractItemsFast($message);
+
+    if (!$company || !$buyer || !$startDate || !$endDate || $items === []) {
+        return null;
+    }
+
+    return [
+        'contract_number' => null,
+        'company_id' => $company->id,
+        'buyer_id' => $buyer->id,
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+        'billing_frequency' => 'monthly',
+        'issue_day' => (int) \Carbon\Carbon::parse($startDate)->format('d'),
+        'status' => 'active',
+        'default_type_of_invoice' => 'NONCASH',
+        'default_payment_method' => 'ACCOUNT',
+        'items' => $items,
+    ];
+}
+
+private function tryApplyContractDraftFastEdit(array $draft, string $message): ?array
+{
+    $updated = $draft;
+    $changed = false;
+    $normalizedMessage = mb_strtolower($message);
+
+    [$startDate, $endDate] = $this->extractContractPeriodFast($message);
+    if ($startDate && $endDate) {
+        $updated['start_date'] = $startDate;
+        $updated['end_date'] = $endDate;
+        $updated['issue_day'] = (int) \Carbon\Carbon::parse($startDate)->format('d');
+        $changed = true;
+    }
+
+    $newItems = $this->extractContractItemsFast($message);
+    if ($newItems !== [] && preg_match('/\b(dodaj|ima|stavke|stavka|sa)\b/iu', $message) === 1) {
+        $updated['items'] = $this->mergeContractDraftItems(is_array($updated['items'] ?? null) ? $updated['items'] : [], $newItems);
+        $changed = true;
+    }
+
+    if (preg_match('/\b(ukloni|obrisi|obriši|izbrisi|izbriši|makni)\s+([\p{L}\p{N}\s\-_]+)/iu', $message, $matches) === 1) {
+        $needle = $this->normalizeSearchText($matches[2]);
+        $updated['items'] = array_values(array_filter($updated['items'] ?? [], function ($item) use ($needle) {
+            $name = $this->normalizeSearchText((string) ($item['name'] ?? ''));
+
+            return $needle === '' || (!str_contains($name, $needle) && !str_contains($needle, $name));
+        }));
+        $changed = true;
+    }
+
+    if (is_array($updated['items'] ?? null) && $updated['items'] !== []) {
+        foreach ($updated['items'] as &$item) {
+            $name = (string) ($item['name'] ?? '');
+            $itemMentioned = $name !== '' && str_contains($this->normalizeSearchText($message), $this->normalizeSearchText($name));
+
+            if (($itemMentioned || count($updated['items']) === 1)
+                && preg_match('/(?:nije|ne)\s+\d+(?:[.,]\d+)?\s+(?:nego|vec|već)\s+(\d+(?:[.,]\d+)?)/iu', $message, $matches) === 1
+            ) {
+                if (str_contains($normalizedMessage, 'eur') || str_contains($normalizedMessage, '€') || str_contains($normalizedMessage, 'cijen') || str_contains($normalizedMessage, 'kosta') || str_contains($normalizedMessage, 'košta')) {
+                    $item['price'] = (float) str_replace(',', '.', $matches[1]);
+                } else {
+                    $item['quantity'] = (float) str_replace(',', '.', $matches[1]);
+                }
+                $changed = true;
+            }
+
+            if ($itemMentioned && preg_match('/\b(?:je|kosta|košta|bude|na)\s+(\d+(?:[.,]\d+)?)\s*(?:eur|€)\b/iu', $message, $matches) === 1) {
+                $item['price'] = (float) str_replace(',', '.', $matches[1]);
+                $changed = true;
+            }
+        }
+        unset($item);
+    }
+
+    return $changed ? $updated : null;
+}
+
+private function findMentionedCompany(string $message)
+{
+    $normalizedMessage = $this->normalizeSearchText($message);
+
+    return \App\Models\Company::query()
+        ->get(['id', 'name'])
+        ->filter(fn($company) => $this->entityMatchesMessage($company->name, $message))
+        ->sortByDesc(fn($company) => $this->entityMentionScore($normalizedMessage, $company->name))
+        ->first();
+}
+
+private function findMentionedBuyer(string $message)
+{
+    $normalizedMessage = $this->normalizeSearchText($message);
+
+    return \App\Models\Buyer::query()
+        ->get(['id', 'name'])
+        ->filter(fn($buyer) => $this->entityMatchesMessage($buyer->name, $message))
+        ->sortByDesc(fn($buyer) => $this->entityMentionScore($normalizedMessage, $buyer->name))
+        ->first();
+}
+
+private function entityMentionScore(string $normalizedMessage, string $name): int
+{
+    $normalizedName = $this->normalizeSearchText($name);
+
+    if ($normalizedName !== '' && str_contains($normalizedMessage, $normalizedName)) {
+        return 1000 + strlen($normalizedName);
+    }
+
+    $score = 0;
+    foreach (preg_split('/\s+/', mb_strtolower($name), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+        $token = $this->normalizeSearchText($token);
+        if (strlen($token) >= 4 && str_contains($normalizedMessage, $token)) {
+            $score += strlen($token);
+        }
+    }
+
+    return $score;
+}
+
+private function extractContractPeriodFast(string $message): array
+{
+    if (preg_match('/\bod\s+(\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4})\s+do\s+(\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4})/iu', $message, $matches) === 1) {
+        return [
+            \Carbon\Carbon::parse(str_replace('.', '-', $matches[1]))->toDateString(),
+            \Carbon\Carbon::parse(str_replace('.', '-', $matches[2]))->toDateString(),
+        ];
+    }
+
+    $today = \Carbon\Carbon::today();
+    if (preg_match('/\btraje\s+(mjesec|mesec)\s+dana\b/iu', $message) === 1) {
+        return [$today->toDateString(), $today->copy()->addMonth()->toDateString()];
+    }
+
+    if (preg_match('/\btraje\s+(\d+)\s+(mjesec|mjeseca|mesec|meseca)\b/iu', $message, $matches) === 1) {
+        return [$today->toDateString(), $today->copy()->addMonths((int) $matches[1])->toDateString()];
+    }
+
+    if (preg_match('/\btraje\s+godinu\s+dana\b/iu', $message) === 1) {
+        return [$today->toDateString(), $today->copy()->addYear()->toDateString()];
+    }
+
+    return [null, null];
+}
+
+private function extractContractItemsFast(string $message): array
+{
+    $itemsText = preg_split('/\b(?:ima|stavke su|stavka je|sa)\b/iu', $message, 2);
+    $itemsText = trim($itemsText[1] ?? '');
+    if ($itemsText === '') {
+        return [];
+    }
+
+    $segments = preg_split('/\s+i\s+|[,;]+/iu', $itemsText) ?: [];
+    $items = [];
+
+    foreach ($segments as $segment) {
+        $segment = trim($segment);
+        if ($segment === '') {
+            continue;
+        }
+
+        if (preg_match('/^(\d+(?:[.,]\d+)?)\s+(.+?)\s+(?:po|od|za)\s+(\d+(?:[.,]\d+)?)\s*(?:eur|€)?$/iu', $segment, $matches) !== 1
+            && preg_match('/^(\d+(?:[.,]\d+)?)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:eur|€)$/iu', $segment, $matches) !== 1
+        ) {
+            continue;
+        }
+
+        $name = trim($matches[2]);
+        $product = $this->findProductByName($name);
+        $items[] = [
+            'product_id' => $product?->id,
+            'name' => $product?->name ?? $name,
+            'code' => null,
+            'quantity' => (float) str_replace(',', '.', $matches[1]),
+            'price' => (float) str_replace(',', '.', $matches[3]),
+            'vat_rate_id' => $product?->vat_rate_id ?? $this->defaultVatRateId(),
+        ];
+    }
+
+    return $items;
+}
+
+private function findProductByName(string $name)
+{
+    $normalizedNeedle = $this->normalizeSearchText($name);
+
+    return \App\Models\Product::query()
+        ->get(['id', 'name', 'vat_rate_id'])
+        ->sortByDesc(fn($product) => $this->fuzzyNameScore($normalizedNeedle, $product->name))
+        ->first(fn($product) => $this->fuzzyNameScore($normalizedNeedle, $product->name) >= 85);
 }
 
 private function mergeContractDraftPayload(array $draft, array $current): array
@@ -2253,6 +2625,7 @@ private function extractContractPayloadWithAi(string $message, string $contextJs
     $systemPrompt = $provider === 'apple'
         ? "Return only JSON for a contract draft. Use IDs from CONTEXT when names match.
 Do not invent items: extract only items mentioned in the user message. If a new item is not in products, product_id=null and price must come from the user message.
+Price can be written as 'po 4 EUR', 'od 4 EUR', 'za 4 EUR', '4e', or '4€'. Treat all as price 4. The price is never part of the item name.
 Defaults: billing_frequency=monthly, status=active, default_type_of_invoice=NONCASH, default_payment_method=ACCOUNT, issue_day=start_date day or 1.
 If company, buyer, or product is not in CONTEXT, the matching id must be null.
 The user's text can contain local terms such as ugovor=contract, izmedju=between, firma=company, kupac=buyer, stavke=items.
@@ -2273,6 +2646,7 @@ JSON schema:
 }"
         : "Vrati samo JSON za nacrt ugovora. Koristi ID iz konteksta kad se naziv poklapa.
 Ne izmišljaj stavke: izvuci samo stavke pomenute u poruci. Ako nova stavka nije u products, product_id=null i cijena mora biti iz poruke.
+Cijena može biti napisana kao „po 4 EUR”, „od 4 EUR”, „za 4 EUR”, „4e” ili „4€”. Sve to znači cijena 4. Cijena nikad nije dio naziva stavke.
 Default: billing_frequency=monthly, status=active, default_type_of_invoice=NONCASH, default_payment_method=ACCOUNT, issue_day=dan start_date ili 1.
 Ako firma/kupac/proizvod nije u kontekstu, odgovarajući id je null.
 KONTEKST: {$contextJson}
@@ -2311,6 +2685,8 @@ private function extractContractPreviewEditWithAi(array $currentPayload, string 
         ? "Return only JSON. Apply USER_MESSAGE as an edit to CURRENT_CONTRACT_DRAFT.
 Keep every unchanged field exactly as it is. If the user asks to add an item, append it. If the user asks to remove/delete an item, remove the best matching item by name. If the user changes price, quantity, period, company, buyer, or date, update only that field.
 When adding a new item not in CONTEXT products, product_id=null, quantity defaults to 1 if missing, and price must come from USER_MESSAGE.
+Understand natural corrections: 'not 3 but 5' changes quantity, 'not 80 but 60' changes price, 'chair should be 60' changes that item's price, 'add one more chair' increases quantity by 1.
+Never scale prices. 30e means 30.00, not 300 or 30000. 80e means 80.00.
 Return the complete updated contract draft in the same schema.
 
 CURRENT_CONTRACT_DRAFT:
@@ -2321,6 +2697,8 @@ CONTEXT:
         : "Vrati samo JSON. Primijeni USER_MESSAGE kao izmjenu na CURRENT_CONTRACT_DRAFT.
 Zadrži svako nepromijenjeno polje tačno kako jeste. Ako korisnik traži dodavanje stavke, dodaj je. Ako traži uklanjanje/brisanje stavke, ukloni najbolji pogodak po nazivu. Ako mijenja cijenu, količinu, period, firmu, kupca ili datum, izmijeni samo to polje.
 Ako dodaje novu stavku koja nije u CONTEXT products, product_id=null, quantity je 1 ako nije navedena, a price mora biti iz USER_MESSAGE.
+Razumij prirodne korekcije: „ne 3 nego 5” mijenja količinu, „nije 80 nego 60” mijenja cijenu, „stolica neka bude 60” mijenja cijenu te stavke, „dodaj još jednu stolicu” uvećava količinu za 1.
+Nikad ne skaliraj cijene. 30e znači 30.00, ne 300 ili 30000. 80e znači 80.00.
 Vrati kompletan ažurirani nacrt ugovora u istoj JSON šemi.
 
 CURRENT_CONTRACT_DRAFT:
@@ -2505,7 +2883,7 @@ private function messageMentionsContractItems(string $message, array $items = []
         }
     }
 
-    if (preg_match('/\b\d+(?:[.,]\d+)?\s*x?\s*[\p{L}][\p{L}\p{N}\s\-_]{2,}?\s+(?:po|za|=)\s*\d+(?:[.,]\d+)?\s*(?:eur|€)\b/iu', $message) === 1) {
+    if (preg_match('/\b\d+(?:[.,]\d+)?\s*x?\s*[\p{L}][\p{L}\p{N}\s\-_]{2,}?\s+(?:po|za|od|=)\s*\d+(?:[.,]\d+)?\s*(?:eur|e|€)\b/iu', $message) === 1) {
         return true;
     }
 
@@ -2896,7 +3274,9 @@ private function formatContractForJson($contract, bool $includeInvoices): array
 
 private function callGemini(string $message, string $systemPrompt, ?string $requestId = null, string $promptType = 'gemini_main'): string
 {
-    $isStructuredPrompt = str_contains($promptType, 'classifier') || str_contains($promptType, 'extract');
+    $isStructuredPrompt = str_contains($promptType, 'classifier')
+        || str_contains($promptType, 'extract')
+        || str_contains($promptType, 'edit');
     $maxAttempts = $isStructuredPrompt ? 3 : 1;
 
     $payload = [
