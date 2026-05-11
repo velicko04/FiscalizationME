@@ -20,6 +20,15 @@ class ChatController extends Controller
     $provider = $request->input('provider', 'ollama'); // 'ollama' ili 'apple'
     $requestId = bin2hex(random_bytes(8));
 
+    if ($this->isDraftCancelResponse($message)) {
+        session()->forget('chat_draft_action');
+
+        return response()->json([
+            'response' => 'U redu, obrisao sam nacrt. Možeš krenuti ponovo kad budeš spreman.',
+            'stats' => ['time_s' => 0, 'provider' => $provider, 'request_id' => $requestId, 'action' => 'draft_cancelled'],
+        ]);
+    }
+
     if ($this->isPendingActionResponse($message)) {
         $startTime = microtime(true);
         $content = $this->handlePendingActionResponse($request, $message, $requestId);
@@ -87,6 +96,30 @@ private function handleAiRoutedMessage(Request $request, string $message, array 
         'raw_intent' => $intent,
     ]);
 
+    if ($this->hasActiveDraft() && $this->isLikelyDraftContinuation($message, $intentName)) {
+        $content = $this->handleActiveDraftContinuation($request, $message, $provider, $requestId);
+
+        if (is_array($content)) {
+            $this->rememberToolResult('draft_continuation', $content['response'] ?? '');
+            return $this->chatJsonResponse($content['response'], $provider, $requestId, 'draft_continuation', $startTime, $content);
+        }
+
+        $this->rememberToolResult('draft_continuation', $content);
+        return $this->chatJsonResponse($content, $provider, $requestId, 'draft_continuation', $startTime);
+    }
+
+    if (($confidence < 0.45 || $intentName === 'unknown') && $this->hasActiveDraft()) {
+        $content = $this->handleActiveDraftContinuation($request, $message, $provider, $requestId);
+
+        if (is_array($content)) {
+            $this->rememberToolResult('draft_continuation', $content['response'] ?? '');
+            return $this->chatJsonResponse($content['response'], $provider, $requestId, 'draft_continuation', $startTime, $content);
+        }
+
+        $this->rememberToolResult('draft_continuation', $content);
+        return $this->chatJsonResponse($content, $provider, $requestId, 'draft_continuation', $startTime);
+    }
+
     if ($confidence < 0.45 || $intentName === 'unknown') {
         $content = $this->unsupportedChatScopeMessage();
 
@@ -115,6 +148,7 @@ private function classifyChatIntent(string $message, array $history, string $pro
         'current_message' => $message,
         'recent_history' => collect($history)->take(-20)->values()->all(),
         'conversation_context' => session('chat_context', []),
+        'active_draft' => session('chat_draft_action', null),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     $systemPrompt = $provider === 'apple'
@@ -351,6 +385,67 @@ private function applyExtractedEntitiesToMessage(string $message, array $entitie
 private function unsupportedChatScopeMessage(): string
 {
     return "Mogu pomoći samo oko ovih akcija:\n- prikaz ugovora i faktura\n- kreiranje ugovora i faktura\n- prikaz stavki ugovora\n- slanje fakture na mejl\n- preuzimanje PDF-a fakture\n- prikaz nefiskalizovanih faktura za ugovor\n\nNapiši zahtjev u vezi jedne od ovih akcija.";
+}
+
+private function hasActiveDraft(?string $type = null): bool
+{
+    $draft = session('chat_draft_action');
+
+    if (!is_array($draft) || empty($draft['type'])) {
+        return false;
+    }
+
+    return $type === null || ($draft['type'] ?? null) === $type;
+}
+
+private function isDraftCancelResponse(string $message): bool
+{
+    if (!$this->hasActiveDraft()) {
+        return false;
+    }
+
+    $normalizedMessage = trim(mb_strtolower($message));
+
+    return in_array($normalizedMessage, ['otkazi', 'otkaži', 'odustani', 'ponisti', 'poništi', 'cancel', 'reset'], true);
+}
+
+private function isLikelyDraftContinuation(string $message, string $intentName): bool
+{
+    $draft = session('chat_draft_action', []);
+    $draftType = $draft['type'] ?? null;
+
+    if ($draftType === 'create_contract' && $intentName === 'create_contract') {
+        return true;
+    }
+
+    if ($draftType === 'create_invoice' && $intentName === 'create_invoice') {
+        return true;
+    }
+
+    $normalizedMessage = mb_strtolower(trim($message));
+
+    if (preg_match('/^(vidi|prikaži|prikazi|show|pošalji|posalji|send|daj mi pdf|pdf|preuzmi|nefiskal|fiskaliz)/u', $normalizedMessage) === 1) {
+        return false;
+    }
+
+    if (($draft['type'] ?? null) === 'create_invoice' && $this->extractContractNumber($message) !== null) {
+        return true;
+    }
+
+    return preg_match('/^(za|sa|od|do|kupac|firma|kompanija|period|stavka|stavke|proizvod|usluga|datum|traje|ima|dodaj|i\s+)/u', $normalizedMessage) === 1
+        || preg_match('/\b\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4}\b/u', $normalizedMessage) === 1
+        || preg_match('/\b\d+(?:[.,]\d+)?\s*(?:x|kom|eur|€)\b/u', $normalizedMessage) === 1;
+}
+
+private function handleActiveDraftContinuation(Request $request, string $message, string $provider, string $requestId): array|string
+{
+    $draft = session('chat_draft_action', []);
+
+    return match ($draft['type'] ?? null) {
+        'create_contract' => $this->handleCreateContractRequest($request, $message, $provider, $requestId),
+        'create_invoice' => $this->handleCreateInvoiceRequest($request, $message, $provider, $requestId),
+        default => $this->unsupportedChatScopeMessage(),
+    };
 }
 
 private function callAppleIntentClassifier(string $message, string $systemPrompt, string $requestId): string
@@ -1494,16 +1589,25 @@ private function handlePendingActionResponse(Request $request, string $message, 
 
 private function handleCreateInvoiceRequest(Request $request, string $message, string $provider, string $requestId): array|string
 {
-    $contextJson = $this->buildInvoiceCreationContextJson($message);
+    $existingDraft = $this->getDraftPayload('create_invoice');
+    $contextMessage = $message;
+    if (!empty($existingDraft['contract_number']) && $this->extractContractNumber($message) === null) {
+        $contextMessage .= ' ugovor ' . $existingDraft['contract_number'];
+    }
+
+    $contextJson = $this->buildInvoiceCreationContextJson($contextMessage);
     $extracted = $this->extractInvoicePayloadWithAi($message, $contextJson, $provider, $requestId);
 
     if (isset($extracted['error'])) {
         return $extracted['error'];
     }
 
+    $extracted = $this->mergeInvoiceDraftPayload($existingDraft, $extracted);
     $contractNumber = $this->normalizeExtractedContractNumber($extracted['contract_number'] ?? null);
     if ($contractNumber === null) {
-        return "Mogu da napravim fakturu, samo mi treba da prepoznam ugovor. Napiši prirodno, npr. „napravi fakturu za ugovor CTR-012” ili „fakturiši ugovor 12 za april 2026”.";
+        $this->storeDraftAction($request, 'create_invoice', $extracted, $message);
+
+        return $this->buildInvoiceDraftQuestion($extracted, ['broj ugovora']);
     }
 
     $contract = \App\Models\Contract::with(['items.product.vatRate', 'company.users', 'buyer'])
@@ -1544,11 +1648,74 @@ private function handleCreateInvoiceRequest(Request $request, string $message, s
         'issue_date' => $issueDate->toDateString(),
         'message' => $message,
     ]);
+    session()->forget('chat_draft_action');
 
     return [
         'response' => $preview,
         'quick_actions' => $this->confirmationQuickActions(),
     ];
+}
+
+private function getDraftPayload(string $type): array
+{
+    $draft = session('chat_draft_action');
+
+    if (!is_array($draft) || ($draft['type'] ?? null) !== $type) {
+        return [];
+    }
+
+    return is_array($draft['payload'] ?? null) ? $draft['payload'] : [];
+}
+
+private function draftSourceMessages(string $type, string $message): array
+{
+    $draft = session('chat_draft_action');
+    $messages = [];
+
+    if (is_array($draft) && ($draft['type'] ?? null) === $type && is_array($draft['messages'] ?? null)) {
+        $messages = $draft['messages'];
+    }
+
+    $messages[] = $message;
+
+    return array_values(array_filter(array_slice($messages, -8), fn($item) => is_string($item) && trim($item) !== ''));
+}
+
+private function storeDraftAction(Request $request, string $type, array $payload, string $message): void
+{
+    $messages = $this->draftSourceMessages($type, $message);
+
+    session()->put('chat_draft_action', [
+        'type' => $type,
+        'payload' => $payload,
+        'messages' => $messages,
+        'updated_at' => now()->toDateTimeString(),
+    ]);
+}
+
+private function mergeInvoiceDraftPayload(array $draft, array $current): array
+{
+    return [
+        'contract_number' => $this->firstFilledValue($current['contract_number'] ?? null, $draft['contract_number'] ?? null),
+        'issue_date' => $this->firstFilledValue($current['issue_date'] ?? null, $draft['issue_date'] ?? null),
+    ];
+}
+
+private function buildInvoiceDraftQuestion(array $payload, array $missing): string
+{
+    $summary = [];
+
+    if (!empty($payload['contract_number'])) {
+        $summary[] = "Ugovor: {$payload['contract_number']}";
+    }
+
+    if (!empty($payload['issue_date'])) {
+        $summary[] = "Datum/period fakture: {$payload['issue_date']}";
+    }
+
+    $summaryText = $summary ? "\n\nDo sada imam:\n- " . implode("\n- ", $summary) : '';
+
+    return "Mogu da pripremim fakturu, ali nedostaje:\n- " . implode("\n- ", $missing) . $summaryText . "\n\nDopiši podatak prirodno, npr. „za ugovor CTR-001” ili „za april 2026”.";
 }
 
 private function buildInvoiceCreationContextJson(string $message): string
@@ -1783,9 +1950,16 @@ private function handleCreateContractRequest(Request $request, string $message, 
         return $extracted['error'];
     }
 
-    $validationErrors = $this->validateContractPayload($extracted, $message);
+    $existingDraft = $this->getDraftPayload('create_contract');
+    $extracted = $this->mergeContractDraftPayload($existingDraft, $extracted);
+    $draftMessages = $this->draftSourceMessages('create_contract', $message);
+    $combinedMessage = implode("\n", $draftMessages);
+
+    $validationErrors = $this->validateContractPayload($extracted, $combinedMessage);
     if ($validationErrors !== []) {
-        return "Ne mogu još da pripremim ugovor. Nedostaje ili nije validno:\n- " . implode("\n- ", $validationErrors) . "\n\nMožeš napisati prirodno, npr. „napravi ugovor između HardNet DOO i Crnogorski Telekom Servis od 29.04.2026 do 29.04.2027, sa 1 Internet paket i 2 Magenta paket” ili „... sa 1 Hosting paket po 15 EUR”.";
+        $this->storeDraftAction($request, 'create_contract', $extracted, $message);
+
+        return $this->buildContractDraftQuestion($extracted, $validationErrors);
     }
 
     if (empty($extracted['contract_number'])) {
@@ -1795,11 +1969,12 @@ private function handleCreateContractRequest(Request $request, string $message, 
     $request->session()->put('pending_chat_action', [
         'type' => 'create_contract',
         'payload' => $extracted,
-        'message' => $message,
+        'message' => $combinedMessage,
     ]);
+    session()->forget('chat_draft_action');
 
     return [
-        'response' => $this->buildContractPreviewFromPayload($extracted, $message),
+        'response' => $this->buildContractPreviewFromPayload($extracted, $combinedMessage),
         'quick_actions' => $this->confirmationQuickActions(),
     ];
 }
@@ -1861,6 +2036,129 @@ private function buildContractCreationContextJson(string $message): string
         'vat_rates' => $vatRates,
         'defaults' => ['billing_frequency' => 'monthly', 'status' => 'active', 'invoice_type' => 'NONCASH', 'payment_method' => 'ACCOUNT'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+private function mergeContractDraftPayload(array $draft, array $current): array
+{
+    $payload = [
+        'contract_number' => $this->firstFilledValue($current['contract_number'] ?? null, $draft['contract_number'] ?? null),
+        'company_id' => $this->firstFilledValue($current['company_id'] ?? null, $draft['company_id'] ?? null),
+        'buyer_id' => $this->firstFilledValue($current['buyer_id'] ?? null, $draft['buyer_id'] ?? null),
+        'start_date' => $this->firstFilledValue($current['start_date'] ?? null, $draft['start_date'] ?? null),
+        'end_date' => $this->firstFilledValue($current['end_date'] ?? null, $draft['end_date'] ?? null),
+        'billing_frequency' => $this->firstFilledValue($draft['billing_frequency'] ?? null, $current['billing_frequency'] ?? null, 'monthly'),
+        'issue_day' => !empty($current['start_date'])
+            ? $this->firstFilledValue($current['issue_day'] ?? null, $draft['issue_day'] ?? null, 1)
+            : $this->firstFilledValue($draft['issue_day'] ?? null, $current['issue_day'] ?? null, 1),
+        'status' => $this->firstFilledValue($draft['status'] ?? null, $current['status'] ?? null, 'active'),
+        'default_type_of_invoice' => $this->firstFilledValue($draft['default_type_of_invoice'] ?? null, $current['default_type_of_invoice'] ?? null, 'NONCASH'),
+        'default_payment_method' => $this->firstFilledValue($draft['default_payment_method'] ?? null, $current['default_payment_method'] ?? null, 'ACCOUNT'),
+        'items' => [],
+    ];
+
+    $draftItems = is_array($draft['items'] ?? null) ? $draft['items'] : [];
+    $currentItems = is_array($current['items'] ?? null) ? $current['items'] : [];
+    $payload['items'] = $this->mergeContractDraftItems($draftItems, $currentItems);
+
+    return $payload;
+}
+
+private function mergeContractDraftItems(array $draftItems, array $currentItems): array
+{
+    $items = [];
+
+    foreach (array_merge($draftItems, $currentItems) as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $name = trim((string) ($item['name'] ?? ''));
+        $productId = $item['product_id'] ?? null;
+        if ($name === '' && empty($productId)) {
+            continue;
+        }
+
+        $normalizedKey = $productId ? 'product:' . $productId : 'name:' . $this->normalizeSearchText($name);
+        $items[$normalizedKey] = [
+            'product_id' => $productId ? (int) $productId : null,
+            'name' => $name,
+            'code' => $item['code'] ?? null,
+            'quantity' => isset($item['quantity']) ? (float) $item['quantity'] : 1,
+            'price' => isset($item['price']) ? (float) $item['price'] : 0,
+            'vat_rate_id' => $item['vat_rate_id'] ?? $this->defaultVatRateId(),
+        ];
+    }
+
+    return array_values($items);
+}
+
+private function defaultVatRateId(): int
+{
+    return (int) (\App\Models\VatRate::where('percentage', 21)->value('id')
+        ?? \App\Models\VatRate::query()->orderByDesc('percentage')->value('id')
+        ?? 1);
+}
+
+private function firstFilledValue(...$values)
+{
+    foreach ($values as $value) {
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        }
+
+        if ($value !== null && $value !== '' && $value !== []) {
+            return $value;
+        }
+    }
+
+    return null;
+}
+
+private function buildContractDraftQuestion(array $payload, array $validationErrors): string
+{
+    $summary = $this->summarizeContractDraftPayload($payload);
+    $summaryText = $summary ? "\n\nDo sada imam:\n- " . implode("\n- ", $summary) : '';
+
+    return "Zapamtio sam nacrt ugovora, ali prije preview-a nedostaje ili nije validno:\n- "
+        . implode("\n- ", $validationErrors)
+        . $summaryText
+        . "\n\nSamo dopiši podatke koji fale. Na primjer: „kupac je Telekom”, „period je od 01.06.2026 do 01.06.2027” ili „stavke su 1 Hosting po 15 EUR i 2 Podrška po 30 EUR”.";
+}
+
+private function summarizeContractDraftPayload(array $payload): array
+{
+    $summary = [];
+
+    if (!empty($payload['company_id'])) {
+        $summary[] = 'Firma: ' . (\App\Models\Company::whereKey($payload['company_id'])->value('name') ?: $payload['company_id']);
+    }
+
+    if (!empty($payload['buyer_id'])) {
+        $summary[] = 'Kupac: ' . (\App\Models\Buyer::whereKey($payload['buyer_id'])->value('name') ?: $payload['buyer_id']);
+    }
+
+    if (!empty($payload['start_date']) || !empty($payload['end_date'])) {
+        $summary[] = 'Period: ' . ($payload['start_date'] ?? '?') . ' - ' . ($payload['end_date'] ?? '?');
+    }
+
+    if (!empty($payload['items']) && is_array($payload['items'])) {
+        $items = collect($payload['items'])->map(function ($item) {
+            $productName = !empty($item['product_id'])
+                ? \App\Models\Product::whereKey($item['product_id'])->value('name')
+                : null;
+            $name = $productName ?: ($item['name'] ?? 'stavka');
+
+            return "{$name}: " . ($item['quantity'] ?? '?') . " x " . ($item['price'] ?? '?') . " EUR";
+        })->join('; ');
+
+        $summary[] = "Stavke: {$items}";
+    }
+
+    return $summary;
 }
 
 private function entityMatchesMessage(?string $name, string $message): bool
